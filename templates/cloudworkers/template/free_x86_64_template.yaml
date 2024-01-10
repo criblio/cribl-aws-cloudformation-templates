@@ -1,0 +1,378 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: "AWS::Serverless-2016-10-31"
+Description: Cribl LogStream Worker Deployment (arm64)
+
+Parameters:
+  criblCloudLeader:
+    Description: "REQUIRED: Cribl Cloud Leader node name. Please do not include https:// in the hostname. " 
+    Type: String
+  criblclusterAuthToken:
+    Description: "REQUIRED: Token from Cribl Cloud Leader node."
+    Type: String
+    NoEcho: True
+  workerGroup:
+    Description: "Cribl Worker Group for Cribl LogStream Cloud deployment. It is set to default unless you change it." 
+    Type: String
+    Default: default
+  workerCount:
+    Description: "REQUIRED: Enter the number of worker nodes desired"
+    Type: String
+  vpcId:
+    Description: "REQUIRED: ID of your existing VPC."
+    Type: AWS::EC2::VPC::Id
+  subnetIds:
+    Description: "REQUIRED: Select 2 subnet Ids in different AZs. These subnets must be in the same VPC as VPC ID above."
+    Type: List<AWS::EC2::Subnet::Id>
+  ImageId:
+    Description: "REQUIRED: Name of the AMI for the EC2 Instance being used for your Cribl Deployment."
+    Type: AWS::EC2::Image::Id
+  workerInstanceType:
+    Description: EC2 instance type to provision the LogStream worker instance. If none specified, c5a.xlarge will be used.
+    Type: String
+    Default: c5a.xlarge
+    AllowedValues:
+      - t2.small
+      - t2.medium
+      - t2.large
+      - t2.xlarge
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3a.small
+      - t3a.medium
+      - t3a.large
+      - c5.large
+      - c5.xlarge
+      - c5d.large
+      - c5d.xlarge
+      - c5a.large
+      - c5a.xlarge
+      - c5ad.large
+      - c5ad.xlarge
+      - c5n.large
+      - c5n.xlarge
+      - m5a.large
+      - m5a.xlarge
+      - m5a.2xlarge
+      - m5ad.large
+      - m5ad.xlarge
+      - m5d.large
+      - m5d.xlarge
+    ConstraintDescription: Must contain valid instance type
+  AdditionalPolicies:
+    Default: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore,arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+    Description: A comma separated list of Policy ARNs to add to the IAM role used by Logstream instances. Append to defaults, DO NOT REMOVE!
+    Type: CommaDelimitedList    
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Cribl LogStream Cloud Information
+        Parameters:
+          - criblCloudLeader
+          - criblclusterAuthToken
+          - workerGroup
+      - Label:
+          default: Worker Instance Configuration
+        Parameters:
+          - workerInstanceType
+          - workerCount
+      - Label:
+          default: Network Configuration
+        Parameters:
+          - vpcId
+          - subnetIds
+      - Label:
+          default: Advanced Settings
+        Parameters:
+          - AdditionalPolicies
+    ParameterLabels:
+      criblCloudLeader:
+        default: Cribl LogStream Cloud Leader node hostname
+      criblclusterAuthToken:
+        default: Cribl LogStream Cloud authentication key 
+      workerGroup:
+        default: Cribl worker node group name
+      workerInstanceType:
+        default: Worker Nodes EC2 Instance Type
+      workerCount:
+        default: Worker Count
+      vpcId:
+        default: VPC ID
+      subnetIds:
+        default: Subnet IDs
+      AdditionalPolicies:
+        default: IAM Policies for node instance profiles
+
+Rules:
+  SubnetsInVPC:
+    Assertions:
+      - Assert: !EachMemberIn
+          - !ValueOfAll
+            - AWS::EC2::Subnet::Id
+            - VpcId
+          - !RefAll "AWS::EC2::VPC::Id"
+        AssertDescription: All subnets must in the VPC
+
+Resources:
+  ec2WorkerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Cribl LogStream Access
+      VpcId: !Ref vpcId
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+          Description: Egress access
+
+  s3DefaultDestinationBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: Cribl LogStream default destination bucket
+
+  LogstreamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: !Sub "/logstream/${AWS::StackName}/"
+      Description: Cribl LogStream  IAM role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns: !Ref AdditionalPolicies
+        
+      Policies:
+        - PolicyName: S3Destinations
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+                Resource:
+                  - !Sub ${s3DefaultDestinationBucket.Arn}
+                  - !Sub ${s3DefaultDestinationBucket.Arn}/*
+        - PolicyName: S3Sources
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetBucketLocation
+                Resource:
+                  - !Sub ${s3DefaultDestinationBucket.Arn}
+                  - !Sub ${s3DefaultDestinationBucket.Arn}/*
+        - PolicyName: KinesisSources
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kinesis:GetRecords
+                  - kinesis:GetShardIterator
+                  - kinesis:ListShards
+                NotResource: "*"
+        - PolicyName: SecretsManagerRead
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: 
+                  - !Ref clusterAuthToken
+      Tags:
+        - Key: Name
+          Value: Cribl LogStream default IAM role
+
+  LogstreamInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: !Sub "/logstream/${AWS::StackName}/"
+      Roles:
+        - !Ref LogstreamRole
+
+  clusterAuthToken:
+    Type: 'AWS::SecretsManager::Secret'
+    Properties:
+      Description: "Cribl Logstream Cluster Auth Token"
+      SecretString: !Ref criblclusterAuthToken
+
+  ec2WorkersAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      DesiredCapacity: !Ref workerCount
+      MaxSize: !Ref workerCount
+      MinSize: !Ref workerCount
+      HealthCheckType: EC2
+      LaunchTemplate:
+        LaunchTemplateId: !Ref ec2WorkerslaunchTemplate
+        Version: !GetAtt ec2WorkerslaunchTemplate.LatestVersionNumber
+      VPCZoneIdentifier:
+        - !Select [0, !Ref subnetIds]
+        - !Select [1, !Ref subnetIds]
+      Tags:
+        - Key: Name
+          Value: Cribl LogStream Worker Nodes ASG
+          PropagateAtLaunch: false
+
+  ec2WorkersAutoScalingGroupLifecycleHook:
+    Type: AWS::AutoScaling::LifecycleHook
+    Properties:
+      AutoScalingGroupName: !Ref ec2WorkersAutoScalingGroup
+      DefaultResult: ABANDON
+      HeartbeatTimeout: 3600
+      LifecycleHookName: cribl-logstream-worker-shutdown
+      LifecycleTransition: "autoscaling:EC2_INSTANCE_TERMINATING"
+
+  ec2WorkerslaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        InstanceInitiatedShutdownBehavior: terminate
+        ImageId: !Ref ImageId
+        InstanceType: !Ref workerInstanceType
+        IamInstanceProfile:
+          Arn: !GetAtt LogstreamInstanceProfile.Arn
+        SecurityGroupIds:
+          - !Ref ec2WorkerSecurityGroup
+        UserData: !Base64
+          Fn::Sub:
+            - |
+              #cloud-config
+
+              runcmd:
+                - export AWS_DEFAULT_REGION=${Region}
+                - /usr/local/bin/configure_logstream.sh -m worker -u ${clusterAuthToken} -H ${ec2leaderInstanceIp} -g ${workerGroup}
+                
+            - ec2leaderInstanceIp: !Ref criblCloudLeader
+              clusterAuthToken: !Ref clusterAuthToken
+              Region: !Ref AWS::Region
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: Cribl LogStream Worker Instance
+
+  workerShutdownEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Cribl LogStream Worker Shutdown Event"
+      EventPattern:
+        source:
+          - "aws.autoscaling"
+        detail-type:
+          - "EC2 Instance-terminate Lifecycle Action"
+        detail:
+          AutoScalingGroupName:
+            - !Ref ec2WorkersAutoScalingGroup
+      State: "ENABLED"
+      Targets:
+        - Arn: !GetAtt functionWorkerShutdown.Arn
+          Id: "WorkerShutdownFunction"
+
+  lamdbaPermissionWorkerShutdownEventRule:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref functionWorkerShutdown
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt workerShutdownEventRule.Arn
+
+  functionWorkerShutdown:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Cribl LogStream Worker Shutdown
+      InlineCode: |
+        import boto3
+        import logging
+        import json
+        import time
+        import os
+
+        ssm = boto3.client('ssm')
+        autoscaling = boto3.client('autoscaling')
+
+        # Logging
+        log = logging.getLogger()
+        log.setLevel(logging.DEBUG)
+
+        def handler(event, context):
+          log.debug("Received event {}".format(json.dumps(event)))
+
+          command = ssm.send_command(
+            InstanceIds=[event['detail']['EC2InstanceId'],],
+            DocumentName='AWS-RunShellScript',
+            Comment='Gracefully terminate Cribl LogStream worker node',
+            Parameters={"commands":["systemctl disable cribl","systemctl daemon-reload","systemctl stop cribl"],"workingDirectory":[""],"executionTimeout":["3600"]},
+            CloudWatchOutputConfig={
+                'CloudWatchOutputEnabled': True
+            }
+          )
+
+          command_id = command['Command']['CommandId']
+
+          for x in range(0,59):
+            time.sleep(10)
+            response = ssm.get_command_invocation(
+                CommandId=command_id,
+                InstanceId=event['detail']['EC2InstanceId'],
+            )
+            if response.get('Status') == 'Success':
+              break
+            else:
+              continue
+
+          autoscaling.complete_lifecycle_action(
+            LifecycleHookName=event['detail']['LifecycleHookName'],
+            AutoScalingGroupName=event['detail']['AutoScalingGroupName'],
+            LifecycleActionToken=event['detail']['LifecycleActionToken'],
+            LifecycleActionResult='CONTINUE',
+            InstanceId=event['detail']['EC2InstanceId']
+          )
+      Policies:
+        - Statement:
+            - Action: ["ssm:SendCommand"]
+              Effect: Allow
+              Resource: "*"
+              Condition:
+                StringEquals:
+                  "aws:ResourceTag/aws:ec2launchtemplate:id": !Ref ec2WorkerslaunchTemplate
+            - Action: ["ssm:SendCommand"]
+              Effect: Allow
+              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}::document/AWS-RunShellScript"
+            - Action: ["autoscaling:CompleteLifecycleAction"]
+              Effect: Allow
+              Resource: !Sub "arn:${AWS::Partition}:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${ec2WorkersAutoScalingGroup}"
+            - Action: ["ssm:GetCommandInvocation"]
+              Effect: Allow
+              Resource: "*"
+      Runtime: python3.7
+      Timeout: 600
+      Handler: index.handler
+
+Outputs:
+  logstreamWebUrlPublic:
+    Value: !Sub https://cribl.cloud
+    Description: Cribl Cloud LogStream Login
+  stackName:
+    Value: !Sub "${AWS::StackName}"
+    Description: CFN Stack Name

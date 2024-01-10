@@ -1,0 +1,375 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: "AWS::Serverless-2016-10-31"
+Description: Cribl Stream Free Deployment (arm64)
+
+Parameters:
+  vpcId:
+    Description: "REQUIRED: ID of your existing VPC."
+    Type: AWS::EC2::VPC::Id
+  subnetIds:
+    Description: "REQUIRED: Select 2 subnet Ids in different AZs. These subnets must be in the same VPC as VPC ID above."
+    Type: List<AWS::EC2::Subnet::Id>
+  webAccessCidr:
+    Type: String
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
+    Description: "REQUIRED: The CIDR IP range permitted to access the Cribl Stream web console. We recommend you set this value to a trusted IP range."
+  ImageId:
+    Description: "REQUIRED: Name of the AMI for the EC2 Instance being used for your Cribl Deployment."
+    Type: AWS::EC2::Image::Id
+  instanceType:
+    Description: EC2 instance type to provision the Cribl Stream instance. If none specified, c6g.xlarge will be used.
+    Type: String
+    Default: c6g.xlarge
+    AllowedValues:
+      - c6g.medium
+      - c6g.large
+      - c6g.xlarge
+      - c6gd.medium 
+      - c6gd.large
+      - c6gd.xlarge
+      - m6g.medium
+      - m6g.large
+      - m6g.xlarge
+      - m6gd.large
+      - m6gd.xlarge
+    ConstraintDescription: Must contain valid instance type
+  AdditionalPolicies:
+    Default: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore,arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+    Description: A comma separated list of Policy ARNs to add to the IAM role used by Logstream instances. Append to defaults, DO NOT REMOVE!
+    Type: CommaDelimitedList   
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Instance Configuration
+        Parameters:
+          - instanceType
+      - Label:
+          default: Network Configuration
+        Parameters:
+          - vpcId
+          - subnetIds
+          - webAccessCidr
+      - Label:
+          default: Advanced Settings
+        Parameters:
+          - AdditionalPolicies
+    ParameterLabels:
+      instanceType:
+        default: EC2 Instance Type
+      vpcId:
+        default: VPC ID
+      subnetIds:
+        default: Subnet ID
+      webAccessCidr:
+        default: Web Access CIDR
+      AdditionalPolicies:
+        default: IAM Policies for node instance profiles
+
+Rules:
+  SubnetsInVPC:
+    Assertions:
+      - Assert: !EachMemberIn
+          - !ValueOfAll
+            - AWS::EC2::Subnet::Id
+            - VpcId
+          - !RefAll "AWS::EC2::VPC::Id"
+        AssertDescription: All subnets must in the VPC
+
+Resources:
+  ec2SingleSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Cribl Stream Access
+      VpcId: !Ref vpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 9000
+          ToPort: 9000
+          CidrIp: !Ref webAccessCidr
+          Description: UI access to the Cribl Stream instance
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+          Description: Egress access
+
+  LoadBalancerExternal:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: application
+      Scheme: internet-facing
+      IpAddressType: ipv4
+      SecurityGroups:
+        - !Ref ec2SingleSecurityGroup
+      Subnets:
+       - !Select [0, !Ref 'subnetIds']
+       - !Select [1, !Ref 'subnetIds']
+  
+  CriblTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: LoadBalancerExternal
+    Properties:
+      HealthCheckPort: '9000'
+      HealthCheckProtocol: HTTP
+      Port: 9000
+      Protocol: HTTP
+      TargetType: instance
+      VpcId: !Ref vpcId
+  
+  CriblWebListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref CriblTargetGroup
+      LoadBalancerArn: !Ref LoadBalancerExternal
+      Port: 9000
+      Protocol: HTTP
+
+  CriblWebListenerRule1:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref CriblTargetGroup
+      Conditions:
+        - Field: http-request-method
+          HttpRequestMethodConfig:
+            Values:
+              - GET_OR_HEAD
+      ListenerArn: !Ref CriblWebListener
+      Priority: 1
+  s3DefaultDestinationBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: Cribl Stream default destination bucket
+
+  LogstreamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: !Sub "/logstream/${AWS::StackName}/"
+      ManagedPolicyArns: !Ref AdditionalPolicies
+      Description: Cribl Stream default IAM role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: S3Destinations
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+                Resource:
+                  - !Sub ${s3DefaultDestinationBucket.Arn}
+                  - !Sub ${s3DefaultDestinationBucket.Arn}/*
+        - PolicyName: S3Sources
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetBucketLocation
+                Resource: "*"
+        - PolicyName: KinesisSources
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kinesis:Get*
+                  - kinesis:List*
+                  - kinesis:Describe*
+                Resource: "*"
+      Tags:
+        - Key: Name
+          Value: Cribl Stream IAM role
+
+  iamDefaultInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: !Sub "/logstream/${AWS::StackName}/"
+      Roles:
+        - !Ref LogstreamRole
+
+  ec2WorkersAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:   
+       - !Select [0, !Ref 'subnetIds']
+       - !Select [1, !Ref 'subnetIds']
+      TargetGroupARNs: 
+        - !Ref CriblTargetGroup
+      DesiredCapacity: "1"
+      MaxSize: "1"
+      MinSize: "0"
+      HealthCheckType: EC2
+      LaunchTemplate:
+        LaunchTemplateId: !Ref ec2WorkerslaunchTemplate
+        Version: !GetAtt ec2WorkerslaunchTemplate.LatestVersionNumber
+      Tags:
+        - Key: Name
+          Value: Cribl Stream Worker Nodes ASG
+          PropagateAtLaunch: false
+
+  ec2WorkersAutoScalingGroupLifecycleHook:
+    Type: AWS::AutoScaling::LifecycleHook
+    Properties:
+      AutoScalingGroupName: !Ref ec2WorkersAutoScalingGroup
+      DefaultResult: ABANDON
+      HeartbeatTimeout: 3600
+      LifecycleHookName: cribl-logstream-worker-shutdown
+      LifecycleTransition: "autoscaling:EC2_INSTANCE_TERMINATING"
+
+  ec2WorkerslaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        InstanceInitiatedShutdownBehavior: terminate
+        ImageId: !Ref ImageId
+        InstanceType: !Ref instanceType
+        IamInstanceProfile:
+          Arn: !GetAtt iamDefaultInstanceProfile.Arn
+        SecurityGroupIds: 
+          - !Ref ec2SingleSecurityGroup
+        UserData: !Base64
+          Fn::Sub:
+            - |
+              #cloud-config
+              runcmd:
+                - /usr/local/bin/configure_logstream.sh -m single -b ${s3DefaultDestinationBucket}
+                - sleep 10
+                - cloud-init query -f "$(cat /opt/cribl_build/users.json.j2)" > /opt/cribl/local/cribl/auth/users.json
+                - chown -R cribl:cribl /opt/cribl
+            - s3DefaultDestinationBucket: !Ref s3DefaultDestinationBucket                
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: Cribl Stream Worker Instance
+              - Key: Purpose
+                Value: Machine data analysis 
+  workerShutdownEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Cribl Stream Worker Shutdown Event"
+      EventPattern:
+        source:
+          - "aws.autoscaling"
+        detail-type:
+          - "EC2 Instance-terminate Lifecycle Action"
+        detail:
+          AutoScalingGroupName:
+            - !Ref ec2WorkersAutoScalingGroup
+      State: "ENABLED"
+      Targets:
+        - Arn: !GetAtt functionWorkerShutdown.Arn
+          Id: "WorkerShutdownFunction"
+
+  lamdbaPermissionWorkerShutdownEventRule:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref functionWorkerShutdown
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt workerShutdownEventRule.Arn
+
+  functionWorkerShutdown:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Cribl Stream Worker Shutdown
+      InlineCode: |
+        import boto3
+        import logging
+        import json
+        import time
+        import os
+
+        ssm = boto3.client('ssm')
+        autoscaling = boto3.client('autoscaling')
+
+        # Logging
+        log = logging.getLogger()
+        log.setLevel(logging.DEBUG)
+
+        def handler(event, context):
+          log.debug("Received event {}".format(json.dumps(event)))
+
+          command = ssm.send_command(
+            InstanceIds=[event['detail']['EC2InstanceId'],],
+            DocumentName='AWS-RunShellScript',
+            Comment='Gracefully terminate Cribl Stream worker node',
+            Parameters={"commands":["systemctl disable cribl","systemctl daemon-reload","systemctl stop cribl"],"workingDirectory":[""],"executionTimeout":["3600"]},
+            CloudWatchOutputConfig={
+                'CloudWatchOutputEnabled': True
+            }
+          )
+
+          command_id = command['Command']['CommandId']
+
+          for x in range(0,59):
+            time.sleep(10)
+            response = ssm.get_command_invocation(
+                CommandId=command_id,
+                InstanceId=event['detail']['EC2InstanceId'],
+            )
+            if response.get('Status') == 'Success':
+              break
+            else:
+              continue
+
+          autoscaling.complete_lifecycle_action(
+            LifecycleHookName=event['detail']['LifecycleHookName'],
+            AutoScalingGroupName=event['detail']['AutoScalingGroupName'],
+            LifecycleActionToken=event['detail']['LifecycleActionToken'],
+            LifecycleActionResult='CONTINUE',
+            InstanceId=event['detail']['EC2InstanceId']
+          )
+      Policies:
+        - Statement:
+            - Action: ["ssm:SendCommand"]
+              Effect: Allow
+              Resource: "*"
+              Condition:
+                StringEquals:
+                  "aws:ResourceTag/aws:ec2launchtemplate:id": !Ref ec2WorkerslaunchTemplate
+            - Action: ["ssm:SendCommand"]
+              Effect: Allow
+              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}::document/AWS-RunShellScript"
+            - Action: ["autoscaling:CompleteLifecycleAction"]
+              Effect: Allow
+              Resource: !Sub "arn:${AWS::Partition}:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${ec2WorkersAutoScalingGroup}"
+            - Action: ["ssm:GetCommandInvocation"]
+              Effect: Allow
+              Resource: "*"
+      Runtime: python3.7
+      Timeout: 600
+      Handler: index.handler
+
+Outputs:
+   logstreamWebUrlPublic:
+    Value: !Sub http://${LoadBalancerExternal.DNSName}:9000/login
+    Description: Cribl Stream Web URL
+   logstreamWebAccessCreds:
+    Value: "admin / EC2 Instance ID"
+    Description: Default Web Access Credentials
