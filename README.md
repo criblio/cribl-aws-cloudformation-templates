@@ -1,7 +1,13 @@
 # Cribl CloudFormation Templates
 
-Welcome to the Cribl CloudFormation Templates Repository. These templates are to be used with the [Cribl AMI's available on the Amazon Marketplace](https://aws.amazon.com/marketplace/search/results?prevFilters=%7B%22productId%22%3A%22prod-y3sx4ombltb5u%22%7D&searchTerms=cribl&CREATOR=57d65874-00f7-4c7f-9d3a-2d6d59e183f0&PRICING_MODEL=FREE&FULFILLMENT_OPTION_TYPE=AMAZON_MACHINE_IMAGE&filters=CREATOR%2CPRICING_MODEL%2CFULFILLMENT_OPTION_TYPE).
+Welcome to the Cribl CloudFormation Templates Repository. These templates are to be used with the [Cribl AMI's available on the Amazon Marketplace](https://aws.amazon.com/marketplace/search/results?prevFilters=%7B%22productId%22%3A%22prod-y3sx4ombltb5u%22%7D&searchTerms=cribl&CREATOR=57d65874-00f7-4c7f-9d3a-2d6d59e183f0&PRICING_MODEL=FREE&FULFILLMENT_OPTION_TYPE=AMAZON_MACHINE_IMAGE&filters=CREATOR%2CPRICING_MODEL%2CFULFILLMENT_OPTION_TYPE). Once subscribed, users can deploy Cribl Stream into their AWS Environments using the templates below. 
+----
 
+## Support
+For questions about these templates, please either create an issue on this repo or reach out to our [community slack](cribl-community.slack.com) and search for the #cribl-aws-cloudformation channel. 
+
+---
+## Templates
 
 ### Single Template
 ![Single Deployment Architecture](templates/single/diagram/arch-diagram.png)
