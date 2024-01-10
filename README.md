@@ -4,7 +4,7 @@ Welcome to the Cribl CloudFormation Templates Repository. These templates are to
 ----
 
 ## Support
-For questions about these templates, please either create an issue on this repo or reach out to our [community slack](cribl-community.slack.com) and search for the #cribl-aws-cloudformation channel. 
+For questions about these templates, please either create an issue on this repo or reach out to our [community slack](https://cribl-community.slack.com) and search for the #cribl-aws-cloudformation channel. 
 
 ---
 ## Templates
