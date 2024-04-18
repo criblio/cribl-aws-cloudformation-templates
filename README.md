@@ -9,6 +9,13 @@ For questions about these templates, please either create an issue on this repo 
 ---
 ## Templates
 
+### Cribl Cloud QuickLaunch Template
+![Cribl Cloud QuickLaunch Architecture](/templates/quicklaunch/diagram/diagram.png)
+
+This template will deploy an IAM trust relationship between your AWS account and the Cribl Cloud tenant. The template will also create two supporting S3 buckets for testing purposes (s3DefaultSIEM and s3DefaultSecurityLake). The newly created IAM role will have access to read and write from these S3 buckets. You can update the IAM Role Policy to include any additional S3 buckets or other AWS resources you want to give Cribl access to. 
+
+Here is the Cloudformation Template [here](templates/quicklaunch/template/cribl_cloud_trust.yaml)
+
 ### Single Template
 ![Single Deployment Architecture](templates/single/diagram/arch-diagram.png)
 
