@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: This template grants access to your Cribl tenant to collect data from your existing Amazon Security Lake S3 buckets
+
+Metadata:
+  cfn-lint:
+    config:
+      ignore_checks:
+        - W9002
+        - W9003
+
+Parameters:
+  CriblCloudTrustARN:
+    Description: This is the Cribl Cloud Trust created in the previous step. Replace the default to your IAM Role created in the previous step.
+    Type: String
+    Default: ''
+  AmazonSecurityLakeSQS:
+    Description: Name of the SQS for Amazon Security Lake.
+    Type: String
+    Default: 'cribl-sqs-asl'
+
+Resources:
+  CriblASLSQS:
+    Type: 'AWS::SQS::Queue'
+    Properties:
+      QueueName: !Ref AmazonSecurityLakeSQS
+  CriblASLQueuePolicy:
+    Type: 'AWS::SQS::QueuePolicy'
+    Properties:
+      Queues: 
+        - !Ref CriblASLSQS
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action:
+              - 'sqs:SendMessage'
+            Resource: !GetAtt CriblASLSQS.Arn
+          - Effect: Allow
+            Principal: 
+              AWS: !Ref CriblCloudTrustARN
+            Action:
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+              - sqs:GetQueueUrl
+            Resource: !GetAtt CriblASLSQS.Arn  
+Outputs:
+  CriblCloudTrustARN:
+    Description: Name of existing IAM Role
+    Value: !Ref CriblCloudTrustARN
+  AmazonSecurityLakeSQS:
+    Description: SQS Queue for Amazon Security Lake
+    Value: !GetAtt CriblASLSQS.Arn
