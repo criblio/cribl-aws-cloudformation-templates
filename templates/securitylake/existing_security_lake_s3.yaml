@@ -10,7 +10,7 @@ Metadata:
 
 Parameters:
   CriblCloudTrustARN:
-    Description: This is the Cribl Cloud Trust created in the previous step. Replace the default to your IAM Role created in the previous step.
+    Description: This is the Cribl Cloud Trust found in the Cribl Cloud UI under the Trust section. For more help, use this documentation link https://docs.cribl.io/stream/cloud-portal/#trust
     Type: String
     Default: ''
   AmazonSecurityLakeSQS:
