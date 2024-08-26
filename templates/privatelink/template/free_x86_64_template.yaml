@@ -549,7 +549,7 @@ Resources:
             - Action: ["ssm:GetCommandInvocation"]
               Effect: Allow
               Resource: "*"
-      Runtime: python3.7
+      Runtime: python3.12
       Timeout: 600
       Handler: index.handler
 
@@ -711,7 +711,7 @@ Resources:
             - Action: ["ssm:GetCommandInvocation"]
               Effect: Allow
               Resource: "*"
-      Runtime: python3.7
+      Runtime: python3.12
       Timeout: 600
       Handler: index.handler
 
