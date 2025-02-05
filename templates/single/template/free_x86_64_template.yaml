@@ -17,7 +17,7 @@ Parameters:
   ImageId:
     Description: "REQUIRED: Name of the AMI for the EC2 Instance being used for your Cribl Deployment."
     Type: AWS::EC2::Image::Id
-    Default: ami-09fc365c98037e469
+    Default: 
   workerRootVolumeSize:
     Description: "Root volume size on Cribl workers"
     Type: Number
