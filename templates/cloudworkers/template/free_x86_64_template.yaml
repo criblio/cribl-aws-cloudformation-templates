@@ -29,36 +29,30 @@ Parameters:
   workerInstanceType:
     Description: EC2 instance type to provision the LogStream worker instance. If none specified, c5a.xlarge will be used.
     Type: String
-    Default: c5a.xlarge
+    Default: c5.xlarge
     AllowedValues:
+      - t2.micro
+      - t2.nano
       - t2.small
       - t2.medium
       - t2.large
       - t2.xlarge
+      - t2.2xlarge
+      - t3.micro
+      - t3.nano
       - t3.small
       - t3.medium
       - t3.large
       - t3.xlarge
-      - t3a.small
-      - t3a.medium
-      - t3a.large
+      - t3.2xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
       - c5.large
       - c5.xlarge
-      - c5d.large
-      - c5d.xlarge
-      - c5a.large
-      - c5a.xlarge
-      - c5ad.large
-      - c5ad.xlarge
-      - c5n.large
-      - c5n.xlarge
-      - m5a.large
-      - m5a.xlarge
-      - m5a.2xlarge
-      - m5ad.large
-      - m5ad.xlarge
-      - m5d.large
-      - m5d.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
     ConstraintDescription: Must contain valid instance type
   AdditionalPolicies:
     Default: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore,arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
@@ -365,7 +359,7 @@ Resources:
             - Action: ["ssm:GetCommandInvocation"]
               Effect: Allow
               Resource: "*"
-      Runtime: python3.7
+      Runtime: python3.12
       Timeout: 600
       Handler: index.handler
 

@@ -9,8 +9,15 @@ For questions about these templates, please either create an issue on this repo 
 ---
 ## Templates
 
-### Single Template
-![Single Deployment Architecture](templates/single/diagram/arch-diagram.png)
+### Cribl Cloud QuickLaunch Template
+![Cribl Cloud QuickLaunch Architecture](/templates/quicklaunch/diagram/diagram.png)
+
+This template will deploy an IAM trust relationship between your AWS account and the Cribl Cloud tenant. The template will also create two supporting S3 buckets for testing purposes (s3DefaultSIEM and s3DefaultSecurityLake). The newly created IAM role will have access to read and write from these S3 buckets. You can update the IAM Role Policy to include any additional S3 buckets or other AWS resources you want to give Cribl access to. 
+
+Here is the Cloudformation Template [here](templates/quicklaunch/template/cribl_cloud_trust.yaml)
+
+### Single Instance Deployment Template
+![Single Instance Deployment Deployment Architecture](templates/single/diagram/arch-diagram.png)
 
 This template will deploy a single Cribl Stream tenant along with an application load balancer, an S3 bucket, an autoscale group and one Security Group. This will deploy in one Public Subnet in your VPC and will create a security group. 
 
@@ -20,7 +27,7 @@ The CloudFormation Template for ARM64 is available [here](templates/single/templ
 
 The CloudFormation Template for x86_64 is available [here](templates/single/template/free_x86_64_template.yaml)
 
-### Distributed Template
+### Distributed Deployment Template
 ![Distributed](templates/distributed/diagram/arch-diagram.png)
 
 This template will deploy one Cribl Stream Leader node and at least one Cribl Stream Worker node. These nodes will be added to their own Autoscale Groups. Two load balancers will also be deployed, one Application Load Balancer for web traffic and a Network Load Balancer for communication between the workers and leader (TCP 4200). You will need at least two Public Subnets and two availability zones for this deployment. An S3 bucket along with a security group will be created in your AWS environment. 
@@ -48,3 +55,15 @@ The main difference is that this template will create a PrivateLink connection a
 The CloudFormation Template for ARM64 is available [here](templates/privatelink/template/free_arm64_template.yaml)
 
 The CloudFormation Template for x86_64 is available [here](templates/privatelink/template/free_x86_64_template.yaml)
+
+### Cribl Stream S3 Bucket Collection
+
+![S3BucketCollection](templates/s3bucketcollection/diagram/arch-diagram.png)
+
+This template will create an IAM Role, Policy and SQS that will attach to the exsting S3 bucket that is being used to store data. The role that is being used to deploy this CloudFormation template needs to have the rights to update the S3 bucket's properties and create an SQS, IAM Role and Policy. 
+
+The CloudFormation Template to create a new VPC and CloudTrail loggging S3 bucket [here](templates/quicklaunch/template/cribl_cloud_enable_ct_vpc.yaml)
+
+The CloudFormation Template for an existing VPC Flow Log S3 bucket is available [here](templates/quicklaunch/template/existing_vpc_s3_trust.yaml)
+
+The CloudFormation Template for an existing CloudTrail S3 bucket is available [here](templates/quicklaunch/template/existing_cloudtrail_s3_trust.yaml)

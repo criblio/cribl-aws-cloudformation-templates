@@ -17,10 +17,22 @@ Parameters:
   ImageId:
     Description: "REQUIRED: Name of the AMI for the EC2 Instance being used for your Cribl Deployment."
     Type: AWS::EC2::Image::Id
+    Default: 
+  workerRootVolumeSize:
+    Description: "Root volume size on Cribl workers"
+    Type: Number
+    Default: 20
+  LoadBalancerScheme:
+    Type: String
+    Description: "REQUIRED: Type of load balancer"
+    Default: internet-facing
+    AllowedValues:
+      - internal
+      - internet-facing
   instanceType:
     Description: EC2 instance type to provision the Cribl Stream instance. If none specified, c5a.xlarge will be used.
     Type: String
-    Default: c5a.xlarge
+    Default: c5.xlarge
     AllowedValues:
       - t2.small
       - t2.medium
@@ -113,11 +125,11 @@ Resources:
           CidrIp: 0.0.0.0/0
           Description: Egress access
 
-  LoadBalancerExternal:
+  LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Type: application
-      Scheme: internet-facing
+      Scheme: !Ref LoadBalancerScheme
       IpAddressType: ipv4
       SecurityGroups:
         - !Ref ec2SingleSecurityGroup
@@ -127,7 +139,7 @@ Resources:
   
   CriblTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    DependsOn: LoadBalancerExternal
+    DependsOn: LoadBalancer
     Properties:
       HealthCheckPort: '9000'
       HealthCheckProtocol: HTTP
@@ -142,7 +154,7 @@ Resources:
       DefaultActions:
         - Type: forward
           TargetGroupArn: !Ref CriblTargetGroup
-      LoadBalancerArn: !Ref LoadBalancerExternal
+      LoadBalancerArn: !Ref LoadBalancer
       Port: 9000
       Protocol: HTTP
 
@@ -263,6 +275,13 @@ Resources:
     Type: AWS::EC2::LaunchTemplate
     Properties:
       LaunchTemplateData:
+        BlockDeviceMappings:
+          - Ebs:
+              VolumeSize: !Ref workerRootVolumeSize
+              VolumeType: gp2
+              DeleteOnTermination: true
+              Encrypted: true
+            DeviceName: /dev/xvda
         InstanceInitiatedShutdownBehavior: terminate
         ImageId: !Ref ImageId
         InstanceType: !Ref instanceType
@@ -275,7 +294,8 @@ Resources:
             - |
               #cloud-config
               runcmd:
-                - /usr/local/bin/configure_logstream.sh -m single -b ${s3DefaultDestinationBucket}
+                - mkdir -p /opt/cribl/local/cribl/auth
+                - /usr/local/bin/configure_stream.sh -m single -b ${s3DefaultDestinationBucket}
                 - sleep 10
                 - cloud-init query -f "$(cat /opt/cribl_build/users.json.j2)" > /opt/cribl/local/cribl/auth/users.json
                 - chown -R cribl:cribl /opt/cribl
@@ -380,13 +400,13 @@ Resources:
             - Action: ["ssm:GetCommandInvocation"]
               Effect: Allow
               Resource: "*"
-      Runtime: python3.7
+      Runtime: python3.12
       Timeout: 600
       Handler: index.handler
 
 Outputs:
   logstreamWebUrlPublic:
-    Value: !Sub http://${LoadBalancerExternal.DNSName}:9000/login
+    Value: !Sub http://${LoadBalancer.DNSName}:9000/login
     Description: Cribl Stream Web URL
   logstreamWebAccessCreds:
     Value: "admin / EC2 Instance ID"

@@ -1,0 +1,111 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template to create an IAM role for Cribl Cloud Search and Stream to access an existing VPC Flow S3 bucket
+Parameters:
+  VPCFlowS3:
+    Description: Existing AWS S3 bucket for VPC Flow Logs. You can use the aws cli command 'aws_cli % aws cloudtrail describe-trails | grep LogDestination' and select the S3 bucket. 
+    Type: String
+    Default: ''
+  VPCSQS:
+    Description: Name of the SQS queue for CloudTrail to trigger for S3 log retrieval.
+    Type: String
+    Default: cribl-vpc-sqs
+  CriblCloudAccountID:
+    Description: Cribl Cloud Trust AWS Account ID. Navigate to Cribl.Cloud, go to Workspace and click on Access. Find the Trust and copy the AWS Account ID found in the trust ARN.
+    Type: String
+    Default: '012345678910'
+Resources:
+  CriblVPCQueue:
+    Type: 'AWS::SQS::Queue'
+    Properties:
+      QueueName: !Ref VPCSQS
+  CriblVPCQueuePolicy:
+    Type: 'AWS::SQS::QueuePolicy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: 
+              Service: s3.amazonaws.com
+            Action:
+              - SQS:SendMessage
+            Resource: !GetAtt CriblVPCQueue.Arn
+            Condition:
+              StringEquals:
+                'aws:SourceAccount':
+                  - !Ref AWS::AccountId
+      Queues:
+        - !Ref VPCSQS
+  CriblTrustCloud:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: 
+                - !Sub 'arn:aws:iam::${CriblCloudAccountID}:role/search-exec-main'
+                - !Sub 'arn:aws:iam::${CriblCloudAccountID}:role/main-default'
+            Action: 
+                - 'sts:AssumeRole'
+                - 'sts:TagSession'
+                - 'sts:SetSourceIdentity'
+            Condition:
+              StringEquals:
+                'sts:ExternalId': !Select 
+                  - 4
+                  - !Split 
+                    - '-'
+                    - !Select 
+                      - 2
+                      - !Split 
+                        - '/'
+                        - !Ref 'AWS::StackId'
+      Description: Role to provide access AWS resources from Cribl Cloud Trust
+      Policies:
+        - PolicyName: S3EmbeddedInlinePolicy
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 's3:ListBucket'
+                  - 's3:GetObject'
+                  - 's3:PutObject'
+                  - 's3:GetBucketLocation'
+                Resource:
+                  - !Sub "arn:aws:s3:::${VPCFlowS3}"
+                  - !Sub "arn:aws:s3:::${VPCFlowS3}/*"             
+              - Effect: Allow
+                Action: 
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:ChangeMessageVisibility
+                  - sqs:GetQueueAttributes
+                  - sqs:GetQueueUrl
+                Resource: 
+                  - !GetAtt CriblVPCQueue.Arn
+Outputs:
+  VPCFlowS3:
+    Description: VPC Flow Log S3 bucket
+    Value: !Ref VPCFlowS3
+  VPCSQS:
+    Description: SQS Queue for VPC Flow Logs
+    Value: !GetAtt CriblVPCQueue.Arn
+  RoleName:
+    Description: Name of created IAM Role
+    Value: !Ref CriblTrustCloud
+  RoleArn:
+    Description: Arn of created Role
+    Value: !GetAtt CriblTrustCloud.Arn
+  ExternalId:
+    Description: External Id for authentication
+    Value: !Select 
+      - 4
+      - !Split 
+        - '-'
+        - !Select 
+          - 2
+          - !Split 
+            - '/'
+            - !Ref 'AWS::StackId'
