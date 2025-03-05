@@ -1,41 +1,11 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Template to create an IAM role for Cribl Cloud Search and Stream
 Parameters:
-  CriblCloudTrustExternalId:
-    Description: Optional External ID for the trust between Cribl Cloud and your AWS Account.
+  CriblCloudAccountID:
+    Description: Cribl Cloud Trust AWS Account ID
     Type: String
-    Default: '123456' 
-  CriblSearchCloudTrust:
-    Description: Cribl Cloud Trust ARN (This can be found in the Cribl.Cloud site under Trust).
-    Type: String
-    Default: 'arn:aws:iam::967222283188:role/search-exec-main' 
-  CriblStreamCloudTrust:
-    Description: Cribl Cloud Trust ARN (This can be found in the Cribl.Cloud site under Trust). 
-    Type: String
-    Default: 'arn:aws:iam::967222283188:role/main-default'
+    Default: '012345678910'
 Resources:
-  s3DefaultSecurityLake:
-    Type: AWS::S3::Bucket
-    Properties:
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      Tags:
-        - Key: Name
-          Value: Cribl Stream Security Lake S3 Bucket for Testing Purposes
-  s3DefaultSIEM:
-    Type: AWS::S3::Bucket
-    Properties:
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      Tags:
-        - Key: Name
-          Value: Cribl Stream SIEM S3 Bucket for Testing Purposes
   CriblTrustCloud:
     Type: AWS::IAM::Role
     Properties:
@@ -44,19 +14,28 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              AWS:
-                - !Ref CriblSearchCloudTrust
-                - !Ref CriblStreamCloudTrust
+              AWS: 
+                - !Sub 'arn:aws:iam::${CriblCloudAccountID}:role/search-exec-main'
+                - !Sub 'arn:aws:iam::${CriblCloudAccountID}:role/main-default'
             Action: 
                 - 'sts:AssumeRole'
                 - 'sts:TagSession'
                 - 'sts:SetSourceIdentity'
             Condition:
               StringEquals:
-               'sts:ExternalId': !Ref CriblCloudTrustExternalId
+                'sts:ExternalId': !Select 
+                  - 4
+                  - !Split 
+                    - '-'
+                    - !Select 
+                      - 2
+                      - !Split 
+                        - '/'
+                        - !Ref 'AWS::StackId'
+
       Description: Role to provide access AWS resources from Cribl Cloud Trust
       Policies:
-        - PolicyName: S3EmbeddedInlinePolicy
+        - PolicyName: CriblCloudS3SQSPolicy
           PolicyDocument: 
             Version: "2012-10-17"
             Statement:
@@ -66,18 +45,16 @@ Resources:
                   - 's3:GetObject'
                   - 's3:PutObject'
                   - 's3:GetBucketLocation'
-                Resource:
-                  - !Sub ${s3DefaultSecurityLake.Arn}
-                  - !Sub ${s3DefaultSecurityLake.Arn}/*
-                  - !Sub ${s3DefaultSIEM.Arn}
-                  - !Sub ${s3DefaultSIEM.Arn}/*                  
+                Resource: '*'
+              - Effect: Allow
+                Action: 
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:ChangeMessageVisibility
+                  - sqs:GetQueueAttributes
+                  - sqs:GetQueueUrl
+                Resource: '*'
 Outputs:
-  SecurityLakeBucket:
-    Description: Amazon S3 Bucket for Testing Amazon Security Lake Destination
-    Value: !GetAtt s3DefaultSecurityLake.Arn
-  SIEMBucket:
-    Description: Amazon S3 Bucket for Testing SIEM Destination
-    Value: !GetAtt s3DefaultSIEM.Arn
   RoleName:
     Description: Name of created IAM Role
     Value: !Ref CriblTrustCloud
@@ -86,4 +63,12 @@ Outputs:
     Value: !GetAtt CriblTrustCloud.Arn
   ExternalId:
     Description: External Id for authentication
-    Value: !Ref CriblCloudTrustExternalId
+    Value: !Select 
+      - 4
+      - !Split 
+        - '-'
+        - !Select 
+          - 2
+          - !Split 
+            - '/'
+            - !Ref 'AWS::StackId'

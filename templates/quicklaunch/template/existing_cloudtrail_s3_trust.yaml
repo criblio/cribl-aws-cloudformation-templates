@@ -1,24 +1,24 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Template to create an IAM role for Cribl Cloud Search and Stream to access an existing VPC Flow S3 bucket
+Description: Template to create an IAM role for Cribl Cloud Search and Stream to access an existing CloudTrail S3 bucket
 Parameters:
-  VPCFlowS3:
-    Description: Existing AWS S3 bucket for VPC Flow Logs. You can use the aws cli command 'aws_cli % aws cloudtrail describe-trails | grep LogDestination' and select the S3 bucket. 
+  CloudTrailsS3:
+    Description: Existing AWS S3 bucket for CloudTrail Logs. You can use the aws cli command 'aws_cli % aws cloudtrail describe-trails | grep LogDestination' and select the S3 bucket. 
     Type: String
     Default: ''
-  VPCSQS:
+  CTSQS:
     Description: Name of the SQS queue for CloudTrail to trigger for S3 log retrieval.
     Type: String
-    Default: cribl-vpc-sqs
+    Default: cribl-cloudtrail-sqs
   CriblCloudAccountID:
     Description: Cribl Cloud Trust AWS Account ID. Navigate to Cribl.Cloud, go to Workspace and click on Access. Find the Trust and copy the AWS Account ID found in the trust ARN.
     Type: String
     Default: '012345678910'
 Resources:
-  CriblVPCQueue:
+  CriblCTQueue:
     Type: 'AWS::SQS::Queue'
     Properties:
-      QueueName: !Ref VPCSQS
-  CriblVPCQueuePolicy:
+      QueueName: !Ref CTSQS
+  CriblCTQueuePolicy:
     Type: 'AWS::SQS::QueuePolicy'
     Properties:
       PolicyDocument:
@@ -28,13 +28,13 @@ Resources:
               Service: s3.amazonaws.com
             Action:
               - SQS:SendMessage
-            Resource: !GetAtt CriblVPCQueue.Arn
+            Resource: !GetAtt CriblCTQueue.Arn
             Condition:
               StringEquals:
                 'aws:SourceAccount':
                   - !Ref AWS::AccountId
       Queues:
-        - !Ref VPCSQS
+        - !Ref CTSQS
   CriblTrustCloud:
     Type: AWS::IAM::Role
     Properties:
@@ -74,8 +74,8 @@ Resources:
                   - 's3:PutObject'
                   - 's3:GetBucketLocation'
                 Resource:
-                  - !Sub "arn:aws:s3:::${VPCFlowS3}"
-                  - !Sub "arn:aws:s3:::${VPCFlowS3}/*"             
+                  - !Sub "arn:aws:s3:::${CloudTrailsS3}"
+                  - !Sub "arn:aws:s3:::${CloudTrailsS3}/*"             
               - Effect: Allow
                 Action: 
                   - sqs:ReceiveMessage
@@ -84,14 +84,14 @@ Resources:
                   - sqs:GetQueueAttributes
                   - sqs:GetQueueUrl
                 Resource: 
-                  - !GetAtt CriblVPCQueue.Arn
+                  - !GetAtt CriblCTQueue.Arn
 Outputs:
-  VPCFlowS3:
-    Description: VPC Flow Log S3 bucket
-    Value: !Ref VPCFlowS3
-  VPCSQS:
-    Description: SQS Queue for VPC Flow Logs
-    Value: !GetAtt CriblVPCQueue.Arn
+  CloudTrailsS3:
+    Description: CloudTrail S3 bucket
+    Value: !Ref CloudTrailsS3
+  CTSQS:
+    Description: SQS Queue for CloudTrail Logs
+    Value: !GetAtt CriblCTQueue.Arn
   RoleName:
     Description: Name of created IAM Role
     Value: !Ref CriblTrustCloud
