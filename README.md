@@ -62,8 +62,8 @@ The CloudFormation Template for x86_64 is available [here](templates/privatelink
 
 This template will create an IAM Role, Policy and SQS that will attach to the exsting S3 bucket that is being used to store data. The role that is being used to deploy this CloudFormation template needs to have the rights to update the S3 bucket's properties and create an SQS, IAM Role and Policy. 
 
-The CloudFormation Template for an existing S3 bucket is available [here](templates/s3bucketcollection/template/existing_s3_bucket_template.yaml)
+The CloudFormation Template to create a new VPC and CloudTrail loggging S3 bucket [here](templates/quicklaunch/template/cribl_cloud_enable_ct_vpc.yaml)
 
-The CloudFormation Template for a new S3 is available [here](templates/s3bucketcollection/template/new_s3_bucket_template.yaml)
+The CloudFormation Template for an existing VPC Flow Log S3 bucket is available [here](templates/quicklaunch/template/existing_vpc_s3_trust.yaml)
 
-The CloudFormation Template for an existing S3 bucket and SQS is available [here](templates/s3bucketcollection/template/existing_s3_bucket_and_sqs_template.yaml)
+The CloudFormation Template for an existing CloudTrail S3 bucket is available [here](templates/quicklaunch/template/existing_cloudtrail_s3_trust.yaml)
