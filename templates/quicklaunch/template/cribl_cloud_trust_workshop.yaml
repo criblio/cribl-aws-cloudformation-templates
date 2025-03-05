@@ -1,18 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Template to create an IAM role for Cribl Cloud Search and Stream
+Description: Template to create an IAM role for Cribl Cloud Search and Stream for the AWS Workshop https://cribl.awsworkshop.io/ 
 Parameters:
-  CriblCloudTrustExternalId:
-    Description: Optional External ID for the trust between Cribl Cloud and your AWS Account.
+  CriblCloudAccountID:
+    Description: Cribl Cloud Trust AWS Account ID
     Type: String
-    Default: '123456' 
-  CriblSearchCloudTrust:
-    Description: Cribl Cloud Trust ARN (This can be found in the Cribl.Cloud site under Trust).
-    Type: String
-    Default: 'arn:aws:iam::967222283188:role/search-exec-main' 
-  CriblStreamCloudTrust:
-    Description: Cribl Cloud Trust ARN (This can be found in the Cribl.Cloud site under Trust). 
-    Type: String
-    Default: 'arn:aws:iam::967222283188:role/main-default'
+    Default: '012345678910'
 Resources:
   s3DefaultSecurityLake:
     Type: AWS::S3::Bucket
@@ -44,16 +36,24 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              AWS:
-                - !Ref CriblSearchCloudTrust
-                - !Ref CriblStreamCloudTrust
+              AWS: 
+                - !Sub 'arn:aws:iam::${CriblCloudAccountID}:role/search-exec-main'
+                - !Sub 'arn:aws:iam::${CriblCloudAccountID}:role/main-default'
             Action: 
                 - 'sts:AssumeRole'
                 - 'sts:TagSession'
                 - 'sts:SetSourceIdentity'
             Condition:
               StringEquals:
-               'sts:ExternalId': !Ref CriblCloudTrustExternalId
+                'sts:ExternalId': !Select 
+                  - 4
+                  - !Split 
+                    - '-'
+                    - !Select 
+                      - 2
+                      - !Split 
+                        - '/'
+                        - !Ref 'AWS::StackId'
       Description: Role to provide access AWS resources from Cribl Cloud Trust
       Policies:
         - PolicyName: S3EmbeddedInlinePolicy
@@ -86,4 +86,12 @@ Outputs:
     Value: !GetAtt CriblTrustCloud.Arn
   ExternalId:
     Description: External Id for authentication
-    Value: !Ref CriblCloudTrustExternalId
+    Value: !Select 
+      - 4
+      - !Split 
+        - '-'
+        - !Select 
+          - 2
+          - !Split 
+            - '/'
+            - !Ref 'AWS::StackId'
