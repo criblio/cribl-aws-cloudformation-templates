@@ -1,12 +1,5 @@
-<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" class="logo" width="120"/>
+<img src="https://cribl-logo-marketplace.s3.us-east-1.amazonaws.com/Cribl-Cloud-Logo-2C-Black.png" class="logo" width="120"/>
 
-# 
-
----
-
-# write a readme.md markdown explanation as to what this cloudformation template does
-
-```markdown
 # Cribl Stream Single Instance Deployment (arm64)
 
 This CloudFormation template deploys a single instance of Cribl Stream in AWS. It provides a simplified setup for proof-of-concept deployments, testing, or small-scale data processing. This template is designed for arm64 architecture.
