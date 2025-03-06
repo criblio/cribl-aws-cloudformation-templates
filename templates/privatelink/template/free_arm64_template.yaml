@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: "AWS::Serverless-2016-10-31"
-Description: Cribl LogStream Free Distributed Deployment (arm64)
+Description: Cribl Stream Free Distributed Deployment PrivateLink (arm64)
 
 Parameters:
   workerCount:
@@ -16,47 +16,159 @@ Parameters:
     Type: String
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
-    Description: "REQUIRED: The CIDR IP range permitted to access the LogStream web console. We recommend you set this value to a trusted IP range."
+    Description: "REQUIRED: The CIDR IP range permitted to access the Stream web console. We recommend you set this value to a trusted IP range."
   ImageId:
     Description: "REQUIRED: Name of the AMI for the EC2 Instance being used for your Cribl Deployment."
     Type: AWS::EC2::Image::Id
   leaderInstanceType:
-    Description: EC2 instance type to provision the LogStream leader instance. If none specified, c6g.xlarge will be used.
+    Description: EC2 instance type to provision the Stream leader instance. If none specified, c6g.xlarge will be used.
     Type: String
     Default: c6g.xlarge
     AllowedValues:
-      - c6g.medium
-      - c6g.large
-      - c6g.xlarge
-      - c6gd.medium 
-      - c6gd.large
-      - c6gd.xlarge
-      - m6g.medium
-      - m6g.large
-      - m6g.xlarge
-      - m6gd.large
-      - m6gd.xlarge
+      -	t4g.nano
+      -	t4g.micro
+      -	t4g.small
+      -	t4g.medium
+      -	t4g.large
+      -	t4g.xlarge
+      -	t4g.2xlarge
+      -	m6g.medium
+      -	m6g.large
+      -	m6g.xlarge
+      -	m6g.2xlarge
+      -	m6g.4xlarge
+      -	m6gd.medium
+      -	m6gd.large
+      -	m6gd.xlarge
+      -	m6gd.2xlarge
+      -	m6gd.4xlarge
+      -	m7g.medium
+      -	m7g.large
+      -	m7g.xlarge
+      -	m7g.2xlarge
+      -	m7g.4xlarge
+      -	m7gd.medium
+      -	m7gd.large
+      -	m7gd.xlarge
+      -	m7gd.2xlarge
+      -	m7gd.4xlarge
+      -	m8g.medium
+      -	m8g.large
+      -	m8g.xlarge
+      -	m8g.2xlarge
+      -	m8g.4xlarge
+      -	c6g.medium
+      -	c6g.large
+      -	c6g.xlarge
+      -	c6g.2xlarge
+      -	c6g.4xlarge
+      -	c6gd.medium
+      -	c6gd.large
+      -	c6gd.xlarge
+      -	c6gd.2xlarge
+      -	c6gd.4xlarge
+      -	c6gn.medium
+      -	c6gn.large
+      -	c6gn.xlarge
+      -	c6gn.2xlarge
+      -	c6gn.4xlarge
+      -	c7g.medium
+      -	c7g.large
+      -	c7g.xlarge
+      -	c7g.2xlarge
+      -	c7g.4xlarge
+      -	c7gd.medium
+      -	c7gd.large
+      -	c7gd.xlarge
+      -	c7gd.2xlarge
+      -	c7gd.4xlarge
+      -	c7gn.medium
+      -	c7gn.large
+      -	c7gn.xlarge
+      -	c7gn.2xlarge
+      -	c7gn.4xlarge
+      -	c8g.medium
+      -	c8g.large
+      -	c8g.xlarge
+      -	c8g.2xlarge
+      -	c8g.4xlarge
     ConstraintDescription: Must contain valid instance type
   workerInstanceType:
-    Description: EC2 instance type to provision the LogStream worker instance. If none specified, c6g.xlarge will be used.
+    Description: EC2 instance type to provision the Stream worker instance. If none specified, c6g.xlarge will be used.
     Type: String
     Default: c6g.xlarge
     AllowedValues:
-      - c6g.medium
-      - c6g.large
-      - c6g.xlarge
-      - c6gd.medium 
-      - c6gd.large
-      - c6gd.xlarge
-      - m6g.medium
-      - m6g.large
-      - m6g.xlarge
-      - m6gd.large
-      - m6gd.xlarge
+      -	t4g.nano
+      -	t4g.micro
+      -	t4g.small
+      -	t4g.medium
+      -	t4g.large
+      -	t4g.xlarge
+      -	t4g.2xlarge
+      -	m6g.medium
+      -	m6g.large
+      -	m6g.xlarge
+      -	m6g.2xlarge
+      -	m6g.4xlarge
+      -	m6gd.medium
+      -	m6gd.large
+      -	m6gd.xlarge
+      -	m6gd.2xlarge
+      -	m6gd.4xlarge
+      -	m7g.medium
+      -	m7g.large
+      -	m7g.xlarge
+      -	m7g.2xlarge
+      -	m7g.4xlarge
+      -	m7gd.medium
+      -	m7gd.large
+      -	m7gd.xlarge
+      -	m7gd.2xlarge
+      -	m7gd.4xlarge
+      -	m8g.medium
+      -	m8g.large
+      -	m8g.xlarge
+      -	m8g.2xlarge
+      -	m8g.4xlarge
+      -	c6g.medium
+      -	c6g.large
+      -	c6g.xlarge
+      -	c6g.2xlarge
+      -	c6g.4xlarge
+      -	c6gd.medium
+      -	c6gd.large
+      -	c6gd.xlarge
+      -	c6gd.2xlarge
+      -	c6gd.4xlarge
+      -	c6gn.medium
+      -	c6gn.large
+      -	c6gn.xlarge
+      -	c6gn.2xlarge
+      -	c6gn.4xlarge
+      -	c7g.medium
+      -	c7g.large
+      -	c7g.xlarge
+      -	c7g.2xlarge
+      -	c7g.4xlarge
+      -	c7gd.medium
+      -	c7gd.large
+      -	c7gd.xlarge
+      -	c7gd.2xlarge
+      -	c7gd.4xlarge
+      -	c7gn.medium
+      -	c7gn.large
+      -	c7gn.xlarge
+      -	c7gn.2xlarge
+      -	c7gn.4xlarge
+      -	c8g.medium
+      -	c8g.large
+      -	c8g.xlarge
+      -	c8g.2xlarge
+      -	c8g.4xlarge
     ConstraintDescription: Must contain valid instance type
   AdditionalPolicies:
     Default: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore,arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
-    Description: A comma separated list of Policy ARNs to add to the IAM role used by Logstream instances. Append to defaults, DO NOT REMOVE!
+    Description: A comma separated list of Policy ARNs to add to the IAM role used by Stream instances. Append to defaults, DO NOT REMOVE!
     Type: CommaDelimitedList 
 
 Metadata:
@@ -112,14 +224,14 @@ Resources:
   ec2leaderSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Cribl LogStream Access
+      GroupDescription: Cribl Stream Access
       VpcId: !Ref vpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 9000
           ToPort: 9000
           CidrIp: !Ref webAccessCidr
-          Description: UI access to the LogStream leader instance
+          Description: UI access to the Stream leader instance
         - IpProtocol: tcp
           FromPort: 4200
           ToPort: 4200
@@ -257,7 +369,7 @@ Resources:
   ec2WorkerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Cribl LogStream Ingress and Egress for Ports
+      GroupDescription: Cribl Stream Ingress and Egress for Ports
       VpcId: !Ref vpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -292,13 +404,13 @@ Resources:
         RestrictPublicBuckets: true
       Tags:
         - Key: Name
-          Value: Cribl LogStream default destination bucket
+          Value: Cribl Stream default destination bucket
 
-  LogstreamRole:
+  StreamRole:
     Type: AWS::IAM::Role
     Properties:
-      Path: !Sub "/logstream/${AWS::StackName}/"
-      Description: Cribl LogStream  IAM role
+      Path: !Sub "/stream/${AWS::StackName}/"
+      Description: Cribl Stream  IAM role
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -356,14 +468,14 @@ Resources:
                   - !Ref clusterAuthToken
       Tags:
         - Key: Name
-          Value: Cribl LogStream default IAM role
+          Value: Cribl Stream default IAM role
 
-  LogstreamInstanceProfile:
+  StreamInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      Path: !Sub "/logstream/${AWS::StackName}/"
+      Path: !Sub "/stream/${AWS::StackName}/"
       Roles:
-        - !Ref LogstreamRole
+        - !Ref StreamRole
 
   ec2LeaderAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -383,7 +495,7 @@ Resources:
         Version: !GetAtt ec2leaderlaunchTemplate.LatestVersionNumber
       Tags:
         - Key: Name
-          Value: Cribl LogStream Leader Nodes ASG
+          Value: Cribl Stream Leader Nodes ASG
           PropagateAtLaunch: false
      
   ec2LeaderAutoScalingGroupLifecycleHook:
@@ -392,7 +504,7 @@ Resources:
       AutoScalingGroupName: !Ref ec2LeaderAutoScalingGroup
       DefaultResult: ABANDON
       HeartbeatTimeout: 3600
-      LifecycleHookName: cribl-logstream-leader-shutdown
+      LifecycleHookName: cribl-stream-leader-shutdown
       LifecycleTransition: "autoscaling:EC2_INSTANCE_TERMINATING"
 
   ec2leaderlaunchTemplate:
@@ -403,7 +515,7 @@ Resources:
         ImageId: !Ref ImageId
         InstanceType: !Ref leaderInstanceType
         IamInstanceProfile:
-          Arn: !GetAtt LogstreamInstanceProfile.Arn
+          Arn: !GetAtt StreamInstanceProfile.Arn
         SecurityGroupIds:
           - !Ref ec2leaderSecurityGroup
         UserData: !Base64
@@ -413,7 +525,7 @@ Resources:
 
               runcmd:
                 - export AWS_DEFAULT_REGION=${Region}
-                - /usr/local/bin/configure_logstream.sh -m master -b ${s3DefaultDestinationBucket} -u ${clusterAuthToken}
+                - /usr/local/bin/configure_stream.sh -m master -b ${s3DefaultDestinationBucket} -u ${clusterAuthToken}
                 - sleep 10
                 - cloud-init query -f "$(cat /opt/cribl_build/users.json.j2)" > /opt/cribl/local/cribl/auth/users.json
                 - chown -R cribl:cribl /opt/cribl
@@ -423,12 +535,12 @@ Resources:
           - ResourceType: instance
             Tags:
               - Key: Name
-                Value: Cribl LogStream Leader Node   
+                Value: Cribl Stream Leader Node   
 
   leaderShutdownEventRule:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Cribl LogStream Leader Shutdown Event"
+      Description: "Cribl Stream Leader Shutdown Event"
       EventPattern:
         source:
           - "aws.autoscaling"
@@ -453,7 +565,7 @@ Resources:
   functionLeaderShutdown:
     Type: AWS::Serverless::Function
     Properties:
-      Description: Cribl LogStream Leader Shutdown
+      Description: Cribl Stream Leader Shutdown
       InlineCode: |
         import boto3
         import logging
@@ -474,7 +586,7 @@ Resources:
           command = ssm.send_command(
             InstanceIds=[event['detail']['EC2InstanceId'],],
             DocumentName='AWS-RunShellScript',
-            Comment='Gracefully terminate Cribl LogStream leader node',
+            Comment='Gracefully terminate Cribl Stream leader node',
             Parameters={"commands":["systemctl disable cribl","systemctl daemon-reload","systemctl stop cribl"],"workingDirectory":[""],"executionTimeout":["3600"]},
             CloudWatchOutputConfig={
                 'CloudWatchOutputEnabled': True
@@ -525,7 +637,7 @@ Resources:
   clusterAuthToken:
     Type: 'AWS::SecretsManager::Secret'
     Properties:
-      Description: "Cribl Logstream Cluster Auth Token"
+      Description: "Cribl Stream Cluster Auth Token"
       GenerateSecretString:
         PasswordLength: 30
         ExcludePunctuation: true
@@ -545,7 +657,7 @@ Resources:
         - !Select [1, !Ref subnetIds]
       Tags:
         - Key: Name
-          Value: Cribl LogStream Worker Nodes ASG
+          Value: Cribl Stream Worker Nodes ASG
           PropagateAtLaunch: false
 
   ec2WorkersAutoScalingGroupLifecycleHook:
@@ -554,7 +666,7 @@ Resources:
       AutoScalingGroupName: !Ref ec2WorkersAutoScalingGroup
       DefaultResult: ABANDON
       HeartbeatTimeout: 3600
-      LifecycleHookName: cribl-logstream-worker-shutdown
+      LifecycleHookName: cribl-stream-worker-shutdown
       LifecycleTransition: "autoscaling:EC2_INSTANCE_TERMINATING"
 
   ec2WorkerslaunchTemplate:
@@ -565,7 +677,7 @@ Resources:
         ImageId: !Ref ImageId
         InstanceType: !Ref workerInstanceType
         IamInstanceProfile:
-          Arn: !GetAtt LogstreamInstanceProfile.Arn
+          Arn: !GetAtt StreamInstanceProfile.Arn
         SecurityGroupIds:
           - !Ref ec2WorkerSecurityGroup
         UserData: !Base64
@@ -575,7 +687,7 @@ Resources:
 
               runcmd:
                 - export AWS_DEFAULT_REGION=${Region}
-                - /usr/local/bin/configure_logstream.sh -m worker -u ${clusterAuthToken} -H ${LeaderLoadBalancerInternal.DNSName} -p 4200
+                - /usr/local/bin/configure_stream.sh -m worker -u ${clusterAuthToken} -H ${LeaderLoadBalancerInternal.DNSName} -p 4200
                 - sed -i 's/false/true/g' /opt/cribl/local/_system/instance.yml
                 - sleep 60
                 - systemctl restart cribl
@@ -585,12 +697,12 @@ Resources:
           - ResourceType: instance
             Tags:
               - Key: Name
-                Value: Cribl LogStream Worker Instance
+                Value: Cribl Stream Worker Instance
 
   workerShutdownEventRule:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Cribl LogStream Worker Shutdown Event"
+      Description: "Cribl Stream Worker Shutdown Event"
       EventPattern:
         source:
           - "aws.autoscaling"
@@ -615,7 +727,7 @@ Resources:
   functionWorkerShutdown:
     Type: AWS::Serverless::Function
     Properties:
-      Description: Cribl LogStream Worker Shutdown
+      Description: Cribl Stream Worker Shutdown
       InlineCode: |
         import boto3
         import logging
@@ -636,7 +748,7 @@ Resources:
           command = ssm.send_command(
             InstanceIds=[event['detail']['EC2InstanceId'],],
             DocumentName='AWS-RunShellScript',
-            Comment='Gracefully terminate Cribl LogStream worker node',
+            Comment='Gracefully terminate Cribl Stream worker node',
             Parameters={"commands":["systemctl disable cribl","systemctl daemon-reload","systemctl stop cribl"],"workingDirectory":[""],"executionTimeout":["3600"]},
             CloudWatchOutputConfig={
                 'CloudWatchOutputEnabled': True
@@ -685,9 +797,9 @@ Resources:
       Handler: index.handler
 
 Outputs:
-  logstreamWebUrlPublic:
+  StreamWebUrlPublic:
     Value: !Sub http://${LeaderLoadBalancerExternal.DNSName}:9000/login
-    Description: Cribl LogStream Web URL
-  logstreamWebAccessCreds:
+    Description: Cribl Stream Web URL
+  StreamWebAccessCreds:
     Value: "admin / Leader EC2 Instance ID"
     Description: Default Web Access Credentials
