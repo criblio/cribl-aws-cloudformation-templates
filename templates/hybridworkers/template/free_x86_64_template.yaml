@@ -1,19 +1,19 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: "AWS::Serverless-2016-10-31"
-Description: Cribl Stream Worker Deployment (arm64)
+Description: Cribl Stream Hybrid Worker Deployment (amd64)
 
 Parameters:
   criblCloudLeader:
-    Description: "REQUIRED: Cribl Cloud Leader node name. Please do not include https:// in the hostname. " 
+    Description: "REQUIRED: Cribl.Cloud or self-hosted Leader node name. Please do not include https:// in the hostname. " 
     Type: String
   criblclusterAuthToken:
-    Description: "REQUIRED: Token from Cribl Cloud Leader node."
+    Description: "REQUIRED: Token from Cribl.Cloud or self-hosted Leader node."
     Type: String
     NoEcho: True
   workerGroup:
-    Description: "Cribl Worker Group for Cribl Stream Cloud deployment. It is set to default unless you change it." 
+    Description: "Cribl Stream Hybrid Worker Group. It is set to defaultHybrid unless you change it." 
     Type: String
-    Default: default
+    Default: defaultHybrid
   workerCount:
     Description: "REQUIRED: Enter the number of worker nodes desired"
     Type: String
@@ -27,77 +27,79 @@ Parameters:
     Description: "REQUIRED: Name of the AMI for the EC2 Instance being used for your Cribl Deployment."
     Type: AWS::EC2::Image::Id
   workerInstanceType:
-    Description: EC2 instance type to provision the Stream worker instance. If none specified, c6g.xlarge will be used.
+    Description: EC2 instance type to provision the Stream worker instance. If none specified, c5a.xlarge will be used.
     Type: String
-    Default: c6g.xlarge
+    Default: c5a.xlarge
     AllowedValues:
-    -	t4g.nano
-    -	t4g.micro
-    -	t4g.small
-    -	t4g.medium
-    -	t4g.large
-    -	t4g.xlarge
-    -	t4g.2xlarge
-    -	m6g.medium
-    -	m6g.large
-    -	m6g.xlarge
-    -	m6g.2xlarge
-    -	m6g.4xlarge
-    -	m6gd.medium
-    -	m6gd.large
-    -	m6gd.xlarge
-    -	m6gd.2xlarge
-    -	m6gd.4xlarge
-    -	m7g.medium
-    -	m7g.large
-    -	m7g.xlarge
-    -	m7g.2xlarge
-    -	m7g.4xlarge
-    -	m7gd.medium
-    -	m7gd.large
-    -	m7gd.xlarge
-    -	m7gd.2xlarge
-    -	m7gd.4xlarge
-    -	m8g.medium
-    -	m8g.large
-    -	m8g.xlarge
-    -	m8g.2xlarge
-    -	m8g.4xlarge
-    -	c6g.medium
-    -	c6g.large
-    -	c6g.xlarge
-    -	c6g.2xlarge
-    -	c6g.4xlarge
-    -	c6gd.medium
-    -	c6gd.large
-    -	c6gd.xlarge
-    -	c6gd.2xlarge
-    -	c6gd.4xlarge
-    -	c6gn.medium
-    -	c6gn.large
-    -	c6gn.xlarge
-    -	c6gn.2xlarge
-    -	c6gn.4xlarge
-    -	c7g.medium
-    -	c7g.large
-    -	c7g.xlarge
-    -	c7g.2xlarge
-    -	c7g.4xlarge
-    -	c7gd.medium
-    -	c7gd.large
-    -	c7gd.xlarge
-    -	c7gd.2xlarge
-    -	c7gd.4xlarge
-    -	c7gn.medium
-    -	c7gn.large
-    -	c7gn.xlarge
-    -	c7gn.2xlarge
-    -	c7gn.4xlarge
-    -	c8g.medium
-    -	c8g.large
-    -	c8g.xlarge
-    -	c8g.2xlarge
-    -	c8g.4xlarge
+        - t2.nano
+        - t2.micro
+        - t2.small
+        - t2.medium
+        - t2.large
+        - t2.xlarge
+        - t2.2xlarge
+        - t3.nano
+        - t3.micro
+        - t3.small
+        - t3.medium
+        - t3.large
+        - t3.xlarge
+        - t3.2xlarge
+        - t3a.nano
+        - t3a.micro
+        - t3a.small
+        - t3a.medium
+        - t3a.large
+        - t3a.xlarge
+        - t3a.2xlarge
+        - m5.large
+        - m5.xlarge
+        - m5.2xlarge
+        - m5.4xlarge
+        - m5a.large
+        - m5a.xlarge
+        - m5a.2xlarge
+        - m5a.4xlarge
+        - m5d.large
+        - m5d.xlarge
+        - m5d.2xlarge
+        - m5d.4xlarge
+        - m5ad.large
+        - m5ad.xlarge
+        - m5ad.2xlarge
+        - m5ad.4xlarge
+        - m6i.large
+        - m6i.xlarge
+        - m6i.2xlarge
+        - m6i.4xlarge
+        - m6a.large
+        - m6a.xlarge
+        - m6a.2xlarge
+        - m6a.4xlarge
+        - c5.large
+        - c5.xlarge
+        - c5.2xlarge
+        - c5.4xlarge
+        - c5a.large
+        - c5a.xlarge
+        - c5a.2xlarge
+        - c5a.4xlarge
+        - c5d.large
+        - c5d.xlarge
+        - c5d.2xlarge
+        - c5d.4xlarge
+        - c5ad.large
+        - c5ad.xlarge
+        - c5ad.2xlarge
+        - c5ad.4xlarge
+        - c6i.large
+        - c6i.xlarge
+        - c6i.2xlarge
+        - c6i.4xlarge
+        - c6a.large
+        - c6a.xlarge
+        - c6a.2xlarge
+        - c6a.4xlarge    
     ConstraintDescription: Must contain valid instance type
   AdditionalPolicies:
     Default: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore,arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
@@ -133,7 +135,7 @@ Metadata:
       criblclusterAuthToken:
         default: Cribl Stream Cloud authentication key 
       workerGroup:
-        default: Cribl worker node group name
+        default: Cribl Stream Hybrid Worker node group name
       workerInstanceType:
         default: Worker Nodes EC2 Instance Type
       workerCount:
@@ -156,6 +158,71 @@ Rules:
         AssertDescription: All subnets must in the VPC
 
 Resources:
+  NetworkLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: network
+      Scheme: internet-facing
+      Subnets: !Ref subnetIds
+      Tags:
+        - Key: Name
+          Value: Cribl Stream NLB
+
+  NLBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckProtocol: TCP
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 3
+      Port: 9514 
+      Protocol: TCP
+      TargetType: instance
+      VpcId: !Ref vpcId
+      Tags:
+        - Key: Name
+          Value: Cribl Stream NLB Target Group
+
+  NLBListener4200:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref NLBTargetGroup
+      LoadBalancerArn: !Ref NetworkLoadBalancer
+      Port: 4200
+      Protocol: TCP
+
+  NLBListener9514:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref NLBTargetGroup
+      LoadBalancerArn: !Ref NetworkLoadBalancer
+      Port: 9514
+      Protocol: TCP
+
+  NLBListener8088:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref NLBTargetGroup
+      LoadBalancerArn: !Ref NetworkLoadBalancer
+      Port: 8088
+      Protocol: TCP
+
+  NLBListener10300:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref NLBTargetGroup
+      LoadBalancerArn: !Ref NetworkLoadBalancer
+      Port: 10300
+      Protocol: TCP
+
   ec2WorkerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -165,7 +232,32 @@ Resources:
         - IpProtocol: "-1"
           CidrIp: 0.0.0.0/0
           Description: Egress access
-
+      SecurityGroupIngress:
+        - IpProtocol: tcp 
+          FromPort: 4200
+          ToPort: 4200
+          CidrIp: 0.0.0.0/0
+          Description: Cribl Leader access
+        - IpProtocol: tcp
+          FromPort: 20000
+          ToPort: 20010
+          CidrIp: 0.0.0.0/0
+          Description: Additional TCP Sources
+        - IpProtocol: tcp
+          FromPort: 9514
+          ToPort: 9514
+          CidrIp: 0.0.0.0/0
+          Description: Syslog Ingress
+        - IpProtocol: tcp
+          FromPort: 8088
+          ToPort: 8088
+          CidrIp: 0.0.0.0/0
+          Description: HEC Sources
+        - IpProtocol: tcp
+          FromPort: 10300
+          ToPort: 10300
+          CidrIp: 0.0.0.0/0
+          Description: Windows and Linux Ingress 
   s3DefaultDestinationBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -177,11 +269,10 @@ Resources:
       Tags:
         - Key: Name
           Value: Cribl Stream default destination bucket
-
   StreamRole:
     Type: AWS::IAM::Role
     Properties:
-      Path: !Sub "/Stream/${AWS::StackName}/"
+      Path: !Sub "/stream/${AWS::StackName}/"
       Description: Cribl Stream  IAM role
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -245,7 +336,7 @@ Resources:
   StreamInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      Path: !Sub "/Stream/${AWS::StackName}/"
+      Path: !Sub "/stream/${AWS::StackName}/"
       Roles:
         - !Ref StreamRole
 
@@ -268,9 +359,11 @@ Resources:
       VPCZoneIdentifier:
         - !Select [0, !Ref subnetIds]
         - !Select [1, !Ref subnetIds]
+      TargetGroupARNs:
+        - !Ref NLBTargetGroup
       Tags:
         - Key: Name
-          Value: Cribl Stream Worker Nodes ASG
+          Value: Cribl Stream Hybrid Worker Nodes ASG
           PropagateAtLaunch: false
 
   ec2WorkersAutoScalingGroupLifecycleHook:
@@ -279,7 +372,7 @@ Resources:
       AutoScalingGroupName: !Ref ec2WorkersAutoScalingGroup
       DefaultResult: ABANDON
       HeartbeatTimeout: 3600
-      LifecycleHookName: cribl-Stream-worker-shutdown
+      LifecycleHookName: cribl-stream-worker-shutdown
       LifecycleTransition: "autoscaling:EC2_INSTANCE_TERMINATING"
 
   ec2WorkerslaunchTemplate:
@@ -300,7 +393,8 @@ Resources:
 
               runcmd:
                 - export AWS_DEFAULT_REGION=${Region}
-                - /usr/local/bin/configure_Stream.sh -m worker -u ${clusterAuthToken} -H ${ec2leaderInstanceIp} -g ${workerGroup}
+                - /usr/local/bin/configure_stream.sh -m worker -u ${clusterAuthToken} -H ${ec2leaderInstanceIp} -g ${workerGroup}
+                - reboot
                 
             - ec2leaderInstanceIp: !Ref criblCloudLeader
               clusterAuthToken: !Ref clusterAuthToken
@@ -309,112 +403,57 @@ Resources:
           - ResourceType: instance
             Tags:
               - Key: Name
-                Value: Cribl Stream Worker Instance
+                Value: Cribl Stream Hybrid Worker Instance
 
-functionWorkerShutdown:
-  Type: AWS::Serverless::Function
-  Properties:
-    Description: Cribl Stream Worker Shutdown
-    InlineCode: |
-      import boto3
-      import logging
-      import json
-      import time
-      import os
-
-      ssm = boto3.client('ssm')
-      autoscaling = boto3.client('autoscaling')
-
-      log = logging.getLogger()
-      log.setLevel(logging.DEBUG)
-
-      def handler(event, context):
-          log.debug("Received event {}".format(json.dumps(event)))
-          
-          command = ssm.send_command(
-              InstanceIds=[event['detail']['EC2InstanceId']],
-              DocumentName=os.environ['SSM_DOCUMENT_NAME'],
-              Comment='Gracefully terminate Cribl Stream worker node',
-              Parameters={
-                  "commands": ["systemctl disable cribl", "systemctl daemon-reload", "systemctl stop cribl"],
-                  "workingDirectory": [""],
-                  "executionTimeout": ["3600"]
-              },
-              CloudWatchOutputConfig={
-                  'CloudWatchOutputEnabled': True
-              }
-          )
-
-          command_id = command['Command']['CommandId']
-          for x in range(60):
-              time.sleep(10)
-              response = ssm.get_command_invocation(
-                  CommandId=command_id,
-                  InstanceId=event['detail']['EC2InstanceId']
-              )
-              if response.get('Status') == 'Success':
-                  break
-              elif response.get('Status') in ['Failed', 'Cancelled', 'TimedOut']:
-                  log.error(f"SSM command failed: {response.get('StatusDetails')}")
-                  return
-
-          autoscaling.complete_lifecycle_action(
-              LifecycleHookName=event['detail']['LifecycleHookName'],
-              AutoScalingGroupName=event['detail']['AutoScalingGroupName'],
-              LifecycleActionToken=event['detail']['LifecycleActionToken'],
-              LifecycleActionResult='CONTINUE',
-              InstanceId=event['detail']['EC2InstanceId']
-          )
-
-  workerShutdownEventRule:
-    Type: AWS::Events::Rule
+  functionWorkerShutdown:
+    Type: AWS::Serverless::Function
     Properties:
-      Description: "Cribl Stream Worker Shutdown Event"
-      EventPattern:
-        source:
-          - "aws.autoscaling"
-        detail-type:
-          - "EC2 Instance-terminate Lifecycle Action"
-        detail:
-          AutoScalingGroupName:
-            - !Ref ec2WorkersAutoScalingGroup
-      State: "ENABLED"
-      Targets:
-        - Arn: !GetAtt functionWorkerShutdown.Arn
-          Id: "WorkerShutdownFunction"
-
-  lamdbaPermissionWorkerShutdownEventRule:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref functionWorkerShutdown
-      Action: "lambda:InvokeFunction"
-      Principal: "events.amazonaws.com"
-      SourceArn: !GetAtt workerShutdownEventRule.Arn
-
-    Policies:
-      - Statement:
-          - Action: ["ssm:SendCommand"]
-            Effect: Allow
-            Resource: "*"
-            Condition:
-              StringEquals:
-                "aws:ResourceTag/aws:ec2launchtemplate:id": !Ref ec2WorkerslaunchTemplate
-          - Action: ["ssm:SendCommand"]
-            Effect: Allow
-            Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}::document/AWS-RunShellScript"
-          - Action: ["autoscaling:CompleteLifecycleAction"]
-            Effect: Allow
-            Resource: !Sub "arn:${AWS::Partition}:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${ec2WorkersAutoScalingGroup}"
-          - Action: ["ssm:GetCommandInvocation"]
-            Effect: Allow
-            Resource: "*"
-    Runtime: python3.12
-    Timeout: 600
-    Handler: index.handler
-    Environment:
-      Variables:
-        SSM_DOCUMENT_NAME: AWS-RunShellScript 
-
+      Description: Cribl Stream Hybrid Worker Shutdown
+      CodeUri: s3://cribl-quick-launch/scripts/index.zip
+      Handler: index.handler
+      Runtime: python3.12
+      Timeout: 600
+      Environment:
+        Variables:
+          SSM_DOCUMENT_NAME: AWS-RunShellScript
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:SendCommand"
+              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}::document/AWS-RunShellScript"
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "ssm:GetCommandInvocation"
+              Resource: "*"
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "autoscaling:DescribeAutoScalingGroups"
+                - "autoscaling:CompleteLifecycleAction"
+              Resource: "*"
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "secretsmanager:GetSecretValue"
+              Resource: !Ref clusterAuthToken
+      Events:
+        WorkerShutdownEvent:
+          Type: CloudWatchEvent
+          Properties:
+            Pattern:
+              source:
+                - "aws.autoscaling"
+              detail-type:
+                - "EC2 Instance-terminate Lifecycle Action"
+              detail:
+                AutoScalingGroupName:
+                  - !Ref ec2WorkersAutoScalingGroup
 Outputs:
   StreamWebUrlPublic:
     Value: !Sub https://cribl.cloud
@@ -422,3 +461,6 @@ Outputs:
   stackName:
     Value: !Sub "${AWS::StackName}"
     Description: CFN Stack Name
+  NetworkLoadBalancerDNS:
+    Description: DNS name of the Network Load Balancer
+    Value: !GetAtt NetworkLoadBalancer.DNSName
