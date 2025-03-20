@@ -1,6 +1,6 @@
 <img src="https://cribl-logo-marketplace.s3.us-east-1.amazonaws.com/Cribl-Cloud-Logo-2C-Black.png" class="logo" width="120"/>
 
-# Cribl Stream Worker Deployment (arm64)
+# Cribl Stream Hybrid Worker Deployment (arm64)
 
 This CloudFormation template deploys Cribl Stream workers in AWS. It's designed to provision and configure worker nodes that connect to a Cribl Cloud leader for centralized management and configuration.
 

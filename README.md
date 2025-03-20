@@ -43,9 +43,9 @@ The CloudFormation Template for x86_64 is available [template](templates/distrib
 
 This template will deploy one Network Load Balancer, an autoscale group with at least one Cribl Worker node and an S3 bucket. You will be required to have a Cribl Cloud instance or distributed Cribl instance to leverage this CloudFormation template. 
 
-The CloudFormation Template for ARM64 is available [template](templates/hybridworkers/template/free_arm64_template.yaml) | [documentation](/templates/hybridworkers/documentation/Cribl%20Stream%20Worker%20Deployment%20(arm64).md)
+The CloudFormation Template for ARM64 is available [template](templates/hybridworkers/template/free_arm64_template.yaml) | [documentation](/templates/hybridworkers/documentation/Cribl%20Stream%20Hybrid%20Worker%20Deployment%20(arm64).md)
 
-The CloudFormation Template for x86_64 is available [template](templates/hybridworkers/template/free_x86_64_template.yaml) | [documentation](/templates/hybridworkers/documentation/Cribl%20Stream%20Worker%20Deployment%20(amd64).md)
+The CloudFormation Template for x86_64 is available [template](templates/hybridworkers/template/free_x86_64_template.yaml) | [documentation](/templates/hybridworkers/documentation/Cribl%20Stream%20Hybrid%20Worker%20Deployment%20(amd64).md)
 
 ### PrivateLink
 ![PrivateLink](templates/privatelink/diagram/arch-diagram.png)
