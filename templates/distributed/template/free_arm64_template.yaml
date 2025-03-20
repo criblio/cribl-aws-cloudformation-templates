@@ -25,7 +25,7 @@ Parameters:
     Type: String
     Default: c6g.xlarge
     AllowedValues:
-    -	t4g.nano
+      -	t4g.nano
       -	t4g.micro
       -	t4g.small
       -	t4g.medium
@@ -268,39 +268,6 @@ Resources:
        - !Select [0, !Ref 'subnetIds']
        - !Select [1, !Ref 'subnetIds']
 
-  WAFWebACL:
-    Type: AWS::WAFv2::WebACL
-    Properties:
-      Name: CriblWebACL
-      Scope: REGIONAL
-      DefaultAction: 
-        Allow: {}
-      VisibilityConfig:
-        CloudWatchMetricsEnabled: true
-        MetricName: CriblWebACLMetric
-        SampledRequestsEnabled: true
-      Rules:
-        - Name: BlockXSSRule
-          Priority: 1
-          Action:
-            Block: {}
-          VisibilityConfig:
-            CloudWatchMetricsEnabled: true
-            MetricName: BlockXSSRuleMetric
-            SampledRequestsEnabled: true
-          Statement:
-            XssMatchStatement:
-              FieldToMatch:
-                AllQueryArguments: {}
-              TextTransformations:
-                - Priority: 1
-                  Type: NONE
-  WebACLAssociation:
-    Type: AWS::WAFv2::WebACLAssociation
-    Properties:
-      ResourceArn: !Ref LeaderLoadBalancerExternal
-      WebACLArn: !GetAtt WAFWebACL.Arn
-  
   LeaderCriblTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     DependsOn: LeaderLoadBalancerExternal

@@ -173,7 +173,7 @@ Parameters:
   AdditionalPolicies:
     Default: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore,arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
     Description: A comma separated list of Policy ARNs to add to the IAM role used by Logstream instances. Append to defaults, DO NOT REMOVE!
-    Type: CommaDelimitedList
+    Type: CommaDelimitedList 
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -246,6 +246,7 @@ Resources:
         - IpProtocol: "-1"
           CidrIp: 0.0.0.0/0
           Description: Egress access
+  
   LeaderLoadBalancerExternal:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -417,6 +418,7 @@ Resources:
             Action:
               - sts:AssumeRole
       ManagedPolicyArns: !Ref AdditionalPolicies
+        
       Policies:
         - PolicyName: S3Destinations
           PolicyDocument:
