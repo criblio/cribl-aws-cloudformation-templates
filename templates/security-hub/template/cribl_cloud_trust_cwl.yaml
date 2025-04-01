@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template to create an IAM role for Cribl Cloud for AWS Built-In and CloudWatch Logs
+Parameters:
+  CriblCloudAccountID:
+    Description: Cribl Cloud Trust AWS Account ID
+    Type: String
+    Default: '012345678910'
+Resources:
+  CriblTrustCloud:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: 
+                - !Sub 'arn:aws:iam::${CriblCloudAccountID}:role/main-default'
+            Action: 
+                - 'sts:AssumeRole'
+                - 'sts:TagSession'
+                - 'sts:SetSourceIdentity'
+            Condition:
+              StringEquals:
+                'sts:ExternalId': !Select 
+                  - 4
+                  - !Split 
+                    - '-'
+                    - !Select 
+                      - 2
+                      - !Split 
+                        - '/'
+                        - !Ref 'AWS::StackId'
+
+      Description: Role to provide access AWS resources from Cribl Cloud Trust
+      Policies:
+        - PolicyName: CriblCloudCWLPolicy
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+Outputs:
+  RoleName:
+    Description: Name of created IAM Role
+    Value: !Ref CriblTrustCloud
+  RoleArn:
+    Description: Arn of created Role
+    Value: !GetAtt CriblTrustCloud.Arn
+  ExternalId:
+    Description: External Id for authentication
+    Value: !Select 
+      - 4
+      - !Split 
+        - '-'
+        - !Select 
+          - 2
+          - !Split 
+            - '/'
+            - !Ref 'AWS::StackId'
