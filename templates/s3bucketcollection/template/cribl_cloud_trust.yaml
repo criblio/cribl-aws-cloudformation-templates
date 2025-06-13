@@ -54,7 +54,7 @@ Resources:
                 Action: 
                   - sqs:ReceiveMessage
                   #- sqs:DeleteMessage
-                  - sqs:ChangeMessageVisibility
+                  #- sqs:ChangeMessageVisibility
                   - sqs:GetQueueAttributes
                   - sqs:GetQueueUrl
                 Resource: '*'
