@@ -32,7 +32,11 @@ Resources:
                       - !Split 
                         - '/'
                         - !Ref 'AWS::StackId'
-
+# Note that the s3:PutObject and sqs:DeleteMessage actions have been commented out due to requirements by AWS to adhere to their policies: 
+# https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_actions-resources.html 
+# https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazons3.html 
+# https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonsqs.html 
+# Make sure to update the Resources to include only the S3 buckets that you want to grant access to Cribl Cloud to read or write. 
       Description: Role to provide access AWS resources from Cribl Cloud Trust
       Policies:
         - PolicyName: CriblCloudS3SQSPolicy
@@ -43,13 +47,13 @@ Resources:
                 Action: 
                   - 's3:ListBucket'
                   - 's3:GetObject'
-                  - 's3:PutObject'
+                  #- 's3:PutObject'
                   - 's3:GetBucketLocation'
                 Resource: '*'
               - Effect: Allow
                 Action: 
                   - sqs:ReceiveMessage
-                  - sqs:DeleteMessage
+                  #- sqs:DeleteMessage
                   - sqs:ChangeMessageVisibility
                   - sqs:GetQueueAttributes
                   - sqs:GetQueueUrl
