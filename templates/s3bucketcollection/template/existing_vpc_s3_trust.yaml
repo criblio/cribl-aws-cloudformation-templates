@@ -2,17 +2,26 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: Template to create an IAM role for Cribl Cloud Search and Stream to access an existing VPC Flow S3 bucket
 Parameters:
   VPCFlowS3:
-    Description: Existing AWS S3 bucket for VPC Flow Logs. You can use the aws cli command 'aws_cli % aws cloudtrail describe-trails | grep LogDestination' and select the S3 bucket. 
+    Description: Existing AWS S3 bucket name for the VPC Flow Logs. 
     Type: String
     Default: ''
   VPCSQS:
-    Description: Name of the SQS queue for CloudTrail to trigger for S3 log retrieval.
+    Description: Name of the Amazon SQS queue for VPC Flow Logs to trigger for S3 log retrieval.
     Type: String
-    Default: cribl-vpc-sqs
+    Default: cribl-vpc-flow-logs-sqs
   CriblCloudAccountID:
     Description: Cribl Cloud Trust AWS Account ID. Navigate to Cribl.Cloud, go to Workspace and click on Access. Find the Trust and copy the AWS Account ID found in the trust ARN.
     Type: String
     Default: '012345678910'
+  KMSKeyArn:
+    Description: >
+      (Optional) ARN of the AWS KMS key used to encrypt CloudTrail logs in S3.
+      You can find your KMS Key Arn from the CloudTrail console in the Logging Account under Trails section and click on the trail name.
+    Type: String
+    Default: ''
+
+Conditions:
+  HasKMSKey: !Not [ !Equals [ !Ref KMSKeyArn, '' ] ]
 Resources:
   CriblVPCQueue:
     Type: 'AWS::SQS::Queue'
@@ -35,6 +44,109 @@ Resources:
                   - !Ref AWS::AccountId
       Queues:
         - !Ref VPCSQS
+        
+  # This is an inline configuration for the S3 bucket notification
+  # It will be applied to the existing bucket
+  CloudTrailBucketNotificationConfig:
+    Type: Custom::S3BucketNotification
+    DependsOn: 
+      - CriblVPCQueuePolicy
+    Properties:
+      ServiceToken: !GetAtt S3NotificationFunction.Arn
+      BucketName: !Ref VPCFlowS3
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Events:
+              - 's3:ObjectCreated:Put'
+            QueueArn: !GetAtt CriblVPCQueue.Arn
+
+  # Lambda function to handle S3 bucket notification configuration
+  S3NotificationFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.9
+      Timeout: 300
+      Code:
+        ZipFile: |
+          import boto3
+          import cfnresponse
+          import traceback
+          
+          def handler(event, context):
+              s3 = boto3.client('s3')
+              try:
+                  if event['RequestType'] in ['Create', 'Update']:
+                      bucket_name = event['ResourceProperties']['BucketName']
+                      notification_config = event['ResourceProperties']['NotificationConfiguration']
+                      s3.put_bucket_notification_configuration(
+                          Bucket=bucket_name,
+                          NotificationConfiguration=notification_config
+                      )
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+              except Exception as e:
+                  print(str(e))
+                  traceback.print_exc()
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {})
+
+  # IAM role for the Lambda function
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Policies:
+        - PolicyName: S3NotificationPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:PutBucketNotification'
+                Resource: !Sub 'arn:aws:s3:::${VPCFlowS3}'
+
+  # Note: The AWS KMS kKey policy should be updated in the AWS Account that manages your KMS Key that was used to encrypt your CloudTrail data to include the following statements:
+  # {
+  #   "Sid": "Allow Cribl IAM role to decrypt",
+  #   "Effect": "Allow",
+  #   "Principal": {
+  #     "AWS": "[CriblTrustCloud.Arn]"
+  #   },
+  #   "Action": [
+  #     "kms:Decrypt",
+  #     "kms:DescribeKey"
+  #   ],
+  #   "Resource": "*"
+  # },
+  # {
+  #   "Sid": "Allow S3 to use the key",
+  #   "Effect": "Allow",
+  #   "Principal": {
+  #     "Service": "s3.amazonaws.com"
+  #   },
+  #   "Action": [
+  #     "kms:GenerateDataKey",
+  #     "kms:Decrypt"
+  #   ],
+  #   "Resource": "*",
+  #   "Condition": {
+  #     "StringEquals": {
+  #       "aws:SourceAccount": "[Logging-Account-ID]"
+  #     },
+  #     "ArnLike": {
+  #       "aws:SourceArn": "arn:aws:s3:::[CloudTrail-S3-Bucket-Name]"
+  #     }
+  #   }
+  # }
+
   CriblTrustCloud:
     Type: AWS::IAM::Role
     Properties:
@@ -75,7 +187,15 @@ Resources:
                   - 's3:GetBucketLocation'
                 Resource:
                   - !Sub "arn:aws:s3:::${VPCFlowS3}"
-                  - !Sub "arn:aws:s3:::${VPCFlowS3}/*"             
+                  - !Sub "arn:aws:s3:::${VPCFlowS3}/*"
+              - !If
+                - HasKMSKey
+                - Effect: Allow
+                  Action:
+                    - 'kms:Decrypt'
+                    - 'kms:DescribeKey'
+                  Resource: !Ref KMSKeyArn
+                - !Ref 'AWS::NoValue'
               - Effect: Allow
                 Action: 
                   - sqs:ReceiveMessage
@@ -87,10 +207,10 @@ Resources:
                   - !GetAtt CriblVPCQueue.Arn
 Outputs:
   VPCFlowS3:
-    Description: VPC Flow Log S3 bucket
+    Description: CloudTrail S3 bucket
     Value: !Ref VPCFlowS3
   VPCSQS:
-    Description: SQS Queue for VPC Flow Logs
+    Description: SQS Queue for CloudTrail Logs
     Value: !GetAtt CriblVPCQueue.Arn
   RoleName:
     Description: Name of created IAM Role
