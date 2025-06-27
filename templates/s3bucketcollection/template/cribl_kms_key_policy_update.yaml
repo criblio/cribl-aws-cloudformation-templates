@@ -1,0 +1,122 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to update an existing AWS KMS Key policy for Cribl CloudTrail integration. Deploy this template directly in the AWS account that manages the KMS key.
+
+Parameters:
+  KMSKeyArn:
+    Description: ARN of the existing AWS KMS Key used by CloudTrail.
+    Type: String
+  CriblTrustCloudRoleArn:
+    Description: ARN of the CriblTrustCloud IAM Role that will be used to access the KMS Key.
+    Type: String
+  S3BucketName:
+    Description: Name of the S3 bucket that uses the KMS Key for encryption of the logs (e.g. centralized CloudTrail/VPC Flow logs S3 bucket name).
+    Type: String
+
+Resources:
+  UpdateKMSKeyPolicyFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.9
+      Timeout: 300
+      Code:
+        ZipFile: |
+          import boto3
+          import cfnresponse
+          import json
+          import traceback
+
+          def handler(event, context):
+              kms = boto3.client('kms')
+              try:
+                  if event['RequestType'] in ['Create', 'Update']:
+                      key_arn = event['ResourceProperties']['KMSKeyArn']
+                      cribl_role_arn = event['ResourceProperties']['CriblTrustCloudRoleArn']
+                      # Extract account ID from CriblTrustCloudRoleArn
+                      # ARN format: arn:aws:iam::123456789012:role/CriblTrustCloud
+                      account_id = cribl_role_arn.split(":")[4]
+                      s3_bucket_name = event['ResourceProperties']['S3BucketName']
+
+                      # Get current policy
+                      key_id = key_arn.split('/')[-1]
+                      current_policy = kms.get_key_policy(KeyId=key_id, PolicyName='default')['Policy']
+                      policy_doc = json.loads(current_policy)
+
+                      # Add statements if not present
+                      new_statements = [
+                          {
+                              "Sid": "Allow Cribl IAM role to decrypt",
+                              "Effect": "Allow",
+                              "Principal": {"AWS": cribl_role_arn},
+                              "Action": ["kms:Decrypt", "kms:DescribeKey"],
+                              "Resource": "*"
+                          },
+                          {
+                              "Sid": "Allow S3 to use the key",
+                              "Effect": "Allow",
+                              "Principal": {"Service": "s3.amazonaws.com"},
+                              "Action": ["kms:GenerateDataKey", "kms:Decrypt"],
+                              "Resource": "*",
+                              "Condition": {
+                                  "StringEquals": {
+                                      "aws:SourceAccount": account_id
+                                  },
+                                  "ArnLike": {
+                                      "aws:SourceArn": f"arn:aws:s3:::{s3_bucket_name}"
+                                  }
+                              }
+                          }
+                      ]
+                      # Remove existing statements with same Sid
+                      policy_doc['Statement'] = [
+                          s for s in policy_doc['Statement']
+                          if s.get('Sid') not in [ns['Sid'] for ns in new_statements]
+                      ] + new_statements
+
+                      kms.put_key_policy(
+                          KeyId=key_id,
+                          PolicyName='default',
+                          Policy=json.dumps(policy_doc)
+                      )
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+              except Exception as e:
+                  print(str(e))
+                  traceback.print_exc()
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {})
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: KMSPolicyUpdate
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kms:GetKeyPolicy
+                  - kms:PutKeyPolicy
+                Resource: !Ref KMSKeyArn
+
+  UpdateKMSKeyPolicyCustom:
+    Type: Custom::UpdateKMSKeyPolicy
+    Properties:
+      ServiceToken: !GetAtt UpdateKMSKeyPolicyFunction.Arn
+      KMSKeyArn: !Ref KMSKeyArn
+      CriblTrustCloudRoleArn: !Ref CriblTrustCloudRoleArn
+      S3BucketName: !Ref S3BucketName
+
+Outputs:
+  UpdatedKMSKeyArn:
+    Description: The ARN of the updated KMS Key
+    Value: !Ref KMSKeyArn

@@ -1,0 +1,34 @@
+[
+    {
+        "Sid": "Allow Cribl IAM role to decrypt",
+        "Effect": "Allow",
+        "Principal": {
+            "AWS": "[CriblTrustCloud.Arn]"
+        },
+        "Action": [
+            "kms:Decrypt",
+            "kms:DescribeKey"
+        ],
+        "Resource": "*"
+    },
+    {
+        "Sid": "Allow S3 to use the key",
+        "Effect": "Allow",
+        "Principal": {
+            "Service": "s3.amazonaws.com"
+        },
+        "Action": [
+            "kms:GenerateDataKey",
+            "kms:Decrypt"
+        ],
+        "Resource": "*",
+        "Condition": {
+            "StringEquals": {
+                "aws:SourceAccount": "[Logging-Account-ID]"
+            },
+            "ArnLike": {
+                "aws:SourceArn": "arn:aws:s3:::[CloudTrail-S3-Bucket-Name]"
+            }
+        }
+    }
+]
