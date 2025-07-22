@@ -526,7 +526,7 @@ Resources:
 
               runcmd:
                 - export AWS_DEFAULT_REGION=${Region}
-                - /usr/local/bin/configure_stream.sh -m master -b ${s3DefaultDestinationBucket} -u ${clusterAuthToken}
+                - /usr/local/bin/configure_stream.sh -m master -b ${s3DefaultDestinationBucket} -k ${clusterAuthToken}
                 - sleep 10
                 - cloud-init query -f "$(cat /opt/cribl_build/users.json.j2)" > /opt/cribl/local/cribl/auth/users.json
                 - chown -R cribl:cribl /opt/cribl
@@ -688,7 +688,7 @@ Resources:
 
               runcmd:
                 - export AWS_DEFAULT_REGION=${Region}
-                - /usr/local/bin/configure_stream.sh -m worker -u ${clusterAuthToken} -H ${LeaderLoadBalancerInternal.DNSName} -p 4200
+                - /usr/local/bin/configure_stream.sh -m worker -k ${clusterAuthToken} -H ${LeaderLoadBalancerInternal.DNSName} -p 4200
                 - sed -i 's/false/true/g' /opt/cribl/local/_system/instance.yml
                 - sleep 60
                 - systemctl restart cribl

@@ -36,7 +36,7 @@ Parameters:
     ConstraintDescription: Must contain valid instance type
   AdditionalPolicies:
     Default: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore,arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
-    Description: A comma separated list of Policy ARNs to add to the IAM role used by Logstream instances. Append to defaults, DO NOT REMOVE!
+    Description: A comma separated list of Policy ARNs to add to the IAM role used by Cribl Stream instances. Append to defaults, DO NOT REMOVE!
     Type: CommaDelimitedList   
 
 Metadata:
@@ -153,10 +153,10 @@ Resources:
         - Key: Name
           Value: Cribl Stream default destination bucket
 
-  LogstreamRole:
+  StreamRole:
     Type: AWS::IAM::Role
     Properties:
-      Path: !Sub "/logstream/${AWS::StackName}/"
+      Path: !Sub "/stream/${AWS::StackName}/"
       ManagedPolicyArns: !Ref AdditionalPolicies
       Description: Cribl Stream default IAM role
       AssumeRolePolicyDocument:
@@ -208,9 +208,9 @@ Resources:
   iamDefaultInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      Path: !Sub "/logstream/${AWS::StackName}/"
+      Path: !Sub "/stream/${AWS::StackName}/"
       Roles:
-        - !Ref LogstreamRole
+        - !Ref StreamRole
 
   ec2WorkersAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -238,7 +238,7 @@ Resources:
       AutoScalingGroupName: !Ref ec2WorkersAutoScalingGroup
       DefaultResult: ABANDON
       HeartbeatTimeout: 3600
-      LifecycleHookName: cribl-logstream-worker-shutdown
+      LifecycleHookName: cribl-stream-worker-shutdown
       LifecycleTransition: "autoscaling:EC2_INSTANCE_TERMINATING"
 
   ec2WorkerslaunchTemplate:
@@ -257,7 +257,7 @@ Resources:
             - |
               #cloud-config
               runcmd:
-                - /usr/local/bin/configure_logstream.sh -m single -b ${s3DefaultDestinationBucket}
+                - /usr/local/bin/configure_stream.sh -m single -b ${s3DefaultDestinationBucket}
                 - sleep 10
                 - cloud-init query -f "$(cat /opt/cribl_build/users.json.j2)" > /opt/cribl/local/cribl/auth/users.json
                 - chown -R cribl:cribl /opt/cribl
@@ -367,9 +367,9 @@ Resources:
       Handler: index.handler
 
 Outputs:
-   logstreamWebUrlPublic:
+   CriblStreamWebUrlPublic:
     Value: !Sub http://${LoadBalancerExternal.DNSName}:9000/login
     Description: Cribl Stream Web URL
-   logstreamWebAccessCreds:
+   CriblStreamWebAccessCreds:
     Value: "admin / EC2 Instance ID"
     Description: Default Web Access Credentials

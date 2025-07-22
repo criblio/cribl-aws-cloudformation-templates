@@ -172,7 +172,7 @@ Parameters:
     ConstraintDescription: Must contain valid instance type
   AdditionalPolicies:
     Default: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore,arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
-    Description: A comma separated list of Policy ARNs to add to the IAM role used by Logstream instances. Append to defaults, DO NOT REMOVE!
+    Description: A comma separated list of Policy ARNs to add to the IAM role used by Cribl Stream instances. Append to defaults, DO NOT REMOVE!
     Type: CommaDelimitedList 
 
 Metadata:
@@ -403,10 +403,10 @@ Resources:
         - Key: Name
           Value: Cribl Stream default destination bucket
 
-  LogstreamRole:
+   StreamRole:
     Type: AWS::IAM::Role
     Properties:
-      Path: !Sub "/logstream/${AWS::StackName}/"
+      Path: !Sub "/stream/${AWS::StackName}/"
       Description: Cribl Stream  IAM role
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -467,12 +467,12 @@ Resources:
         - Key: Name
           Value: Cribl Stream default IAM role
 
-  LogstreamInstanceProfile:
+  StreamInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      Path: !Sub "/logstream/${AWS::StackName}/"
+      Path: !Sub "/stream/${AWS::StackName}/"
       Roles:
-        - !Ref LogstreamRole
+        - !Ref StreamRole
 
   ec2LeaderAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -501,7 +501,7 @@ Resources:
       AutoScalingGroupName: !Ref ec2LeaderAutoScalingGroup
       DefaultResult: ABANDON
       HeartbeatTimeout: 3600
-      LifecycleHookName: cribl-logstream-leader-shutdown
+      LifecycleHookName: cribl-stream-leader-shutdown
       LifecycleTransition: "autoscaling:EC2_INSTANCE_TERMINATING"
 
   ec2leaderlaunchTemplate:
@@ -512,7 +512,7 @@ Resources:
         ImageId: !Ref ImageId
         InstanceType: !Ref leaderInstanceType
         IamInstanceProfile:
-          Arn: !GetAtt LogstreamInstanceProfile.Arn
+          Arn: !GetAtt StreamInstanceProfile.Arn
         SecurityGroupIds:
           - !Ref ec2leaderSecurityGroup
         UserData: !Base64
@@ -522,7 +522,7 @@ Resources:
 
               runcmd:
                 - export AWS_DEFAULT_REGION=${Region}
-                - /usr/local/bin/configure_logstream.sh -m master -b ${s3DefaultDestinationBucket} -u ${clusterAuthToken}
+                - /usr/local/bin/configure_stream.sh -m master -b ${s3DefaultDestinationBucket} -u ${clusterAuthToken}
                 - sleep 10
                 - cloud-init query -f "$(cat /opt/cribl_build/users.json.j2)" > /opt/cribl/local/cribl/auth/users.json
                 - chown -R cribl:cribl /opt/cribl
@@ -634,7 +634,7 @@ Resources:
   clusterAuthToken:
     Type: 'AWS::SecretsManager::Secret'
     Properties:
-      Description: "Cribl Logstream Cluster Auth Token"
+      Description: "Cribl Stream Cluster Auth Token"
       GenerateSecretString:
         PasswordLength: 30
         ExcludePunctuation: true
@@ -663,7 +663,7 @@ Resources:
       AutoScalingGroupName: !Ref ec2WorkersAutoScalingGroup
       DefaultResult: ABANDON
       HeartbeatTimeout: 3600
-      LifecycleHookName: cribl-logstream-worker-shutdown
+      LifecycleHookName: cribl-stream-worker-shutdown
       LifecycleTransition: "autoscaling:EC2_INSTANCE_TERMINATING"
 
   ec2WorkerslaunchTemplate:
@@ -674,7 +674,7 @@ Resources:
         ImageId: !Ref ImageId
         InstanceType: !Ref workerInstanceType
         IamInstanceProfile:
-          Arn: !GetAtt LogstreamInstanceProfile.Arn
+          Arn: !GetAtt StreamInstanceProfile.Arn
         SecurityGroupIds:
           - !Ref ec2WorkerSecurityGroup
         UserData: !Base64
@@ -684,7 +684,7 @@ Resources:
 
               runcmd:
                 - export AWS_DEFAULT_REGION=${Region}
-                - /usr/local/bin/configure_logstream.sh -m worker -u ${clusterAuthToken} -H ${LeaderLoadBalancerInternal.DNSName} -p 4200
+                - /usr/local/bin/configure_stream.sh -m worker -k ${clusterAuthToken} -H ${LeaderLoadBalancerInternal.DNSName} -p 4200
                 - sed -i 's/false/true/g' /opt/cribl/local/_system/instance.yml
                 - sleep 60
                 - systemctl restart cribl
@@ -794,9 +794,9 @@ Resources:
       Handler: index.handler
 
 Outputs:
-  logstreamWebUrlPublic:
+  CriblStreamWebUrlPublic:
     Value: !Sub http://${LeaderLoadBalancerExternal.DNSName}:9000/login
     Description: Cribl Stream Web URL
-  logstreamWebAccessCreds:
+  CriblStreamWebAccessCreds:
     Value: "admin / Leader EC2 Instance ID"
     Description: Default Web Access Credentials

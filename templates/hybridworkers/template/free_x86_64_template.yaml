@@ -393,7 +393,7 @@ Resources:
 
               runcmd:
                 - export AWS_DEFAULT_REGION=${Region}
-                - /usr/local/bin/configure_stream.sh -m worker -u ${clusterAuthToken} -H ${ec2leaderInstanceIp} -g ${workerGroup}
+                - /usr/local/bin/configure_stream.sh -m worker -k ${clusterAuthToken} -H ${ec2leaderInstanceIp} -g ${workerGroup}
                 - reboot
                 
             - ec2leaderInstanceIp: !Ref criblCloudLeader
