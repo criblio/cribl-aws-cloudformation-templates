@@ -73,6 +73,7 @@ The role has an inline policy granting:
 
 1. Deploy this template in your AWS account
 2. Provide the resulting role ARN, SQS queue ARN, and external ID to Cribl Cloud
+    2a. If you use AWS KMS Key encryption for your VPC Flow logs in S3, update the KMS Key policy in the Logging Account to allow Cribl Cloud to decrypt the VPC Flow logs in S3 by deploying the CloudFormation templatte (cribl_kms_key_policy_update.yaml) in your AWS Account that manages your KMS Key for your VPC Flow logs in S3
 3. Configure Cribl Cloud to use these credentials for accessing your VPC Flow logs
 
 This setup enables Cribl Cloud to securely access and process your VPC Flow logs, facilitating advanced log analysis and management capabilities.
