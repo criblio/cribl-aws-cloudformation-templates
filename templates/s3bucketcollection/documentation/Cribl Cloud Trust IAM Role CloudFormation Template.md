@@ -64,7 +64,7 @@ To use this template:
 2. Provide the resulting role ARN and external ID to Cribl Cloud
 3. Cribl Cloud can then assume this role to access your S3 and SQS resources
 
-Remember to review and adjust the permissions as necessary to align with your security requirements and the specific needs of your Cribl Cloud integration[^1][^2][^4].
+Remember to review and adjust the permissions as necessary to align with your security requirements and the specific needs of your Cribl Cloud integration [^1][^2][^4].
 
 <div style="text-align: center">⁂</div>
 
@@ -86,3 +86,4 @@ Remember to review and adjust the permissions as necessary to align with your se
 
 [^9]: https://docs.cribl.io/stream/usecase-aws-x-account/
 
+[^10]: https://docs.cribl.io/search/set-up-aws#permission-requirements-for-aws-api/
