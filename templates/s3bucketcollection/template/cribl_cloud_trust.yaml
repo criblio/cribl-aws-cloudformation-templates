@@ -58,6 +58,53 @@ Resources:
                   - sqs:GetQueueAttributes
                   - sqs:GetQueueUrl
                 Resource: '*'
+              - Effect: Allow
+                Action: 
+                  - ec2:DescribeInstances
+                  - ec2:DescribeVolumes
+                  - ec2:DescribeSecurityGroups
+                Resource: '*'
+              - Effect: Allow
+                Action: 
+                  - lambda:ListFunctions
+                Resource: '*'
+              - Effect: Allow
+                Action: 
+                  - iam:ListRoles
+                  - iam:ListUsers
+                  - iam:ListGroups
+                  - iam:ListPolicies
+                  - iam:ListMFADevices
+                Resource: '*'
+              - Effect: Allow
+                Action: 
+                  - cloudformation:ListExports
+                  - cloudformation:ListStacks
+                  - cloudformation:ListStackSets
+                Resource: '*'
+              - Effect: Allow
+                Action: 
+                  - dynamodb:ListBackups
+                Resource: '*'
+              - Effect: Allow
+                Action: 
+                  - dynamodb:ListTables
+                Resource: '*'
+              - Effect: Allow
+                Action: 
+                  - rds:DescribeDBInstances
+                  - rds:DescribeDBClusterEndpoints
+                  - rds:DescribeDBSecurityGroups
+                  - rds:DescribeCertificates
+                  - rds:DescribeDBClusters
+              - Effect: Allow
+                Action: 
+                  - cloudtrail:LookupEvents
+                Resource: '*'
+              - Effect: Allow
+                Action: 
+                  - elasticfilesystem:DescribeFileSystems 
+                Resource: '*'
 Outputs:
   RoleName:
     Description: Name of created IAM Role
