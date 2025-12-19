@@ -52,6 +52,16 @@ Resources:
                 Resource: '*'
               - Effect: Allow
                 Action: 
+                  - 'logs:CreateLogStream'
+                  - 'logs:CreateLogGroup'
+                  - 'logs:PutLogEvents'
+                  - 'logs:GetLogEvents'
+                  - 'logs:FilterLogEvents'
+                  - 'logs:DescribeLogGroups'
+                  - 'logs:DescribeLogStreams'
+                Resource: '*'
+              - Effect: Allow
+                Action: 
                   - sqs:ReceiveMessage
                   #- sqs:DeleteMessage
                   #- sqs:ChangeMessageVisibility
