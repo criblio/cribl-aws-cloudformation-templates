@@ -49,7 +49,7 @@ Resources:
                   - 's3:GetObject'
                   #- 's3:PutObject'
                   - 's3:GetBucketLocation'
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action: 
                   - 'logs:CreateLogStream'
@@ -59,7 +59,7 @@ Resources:
                   - 'logs:FilterLogEvents'
                   - 'logs:DescribeLogGroups'
                   - 'logs:DescribeLogStreams'
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action: 
                   - sqs:ReceiveMessage
@@ -67,17 +67,17 @@ Resources:
                   #- sqs:ChangeMessageVisibility
                   - sqs:GetQueueAttributes
                   - sqs:GetQueueUrl
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action: 
                   - ec2:DescribeInstances
                   - ec2:DescribeVolumes
                   - ec2:DescribeSecurityGroups
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action: 
                   - lambda:ListFunctions
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action: 
                   - iam:ListRoles
@@ -85,21 +85,21 @@ Resources:
                   - iam:ListGroups
                   - iam:ListPolicies
                   - iam:ListMFADevices
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action: 
                   - cloudformation:ListExports
                   - cloudformation:ListStacks
                   - cloudformation:ListStackSets
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action: 
                   - dynamodb:ListBackups
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action: 
                   - dynamodb:ListTables
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action: 
                   - rds:DescribeDBInstances
@@ -107,14 +107,15 @@ Resources:
                   - rds:DescribeDBSecurityGroups
                   - rds:DescribeCertificates
                   - rds:DescribeDBClusters
+                Resource: "*"
               - Effect: Allow
                 Action: 
                   - cloudtrail:LookupEvents
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action: 
                   - elasticfilesystem:DescribeFileSystems 
-                Resource: '*'
+                Resource: "*"
 Outputs:
   RoleName:
     Description: Name of created IAM Role
